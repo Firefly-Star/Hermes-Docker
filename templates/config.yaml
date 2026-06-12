@@ -9,6 +9,12 @@ fallback_providers: []
 credential_pool_strategies: {}
 toolsets:
   - hermes-cli
+mcp_servers:
+  playwright:
+    url: "http://host.docker.internal:8931/mcp"
+    headers:
+      Host: "localhost:8931"
+    timeout: 120
 agent:
   max_turns: 90
   gateway_timeout: 1800

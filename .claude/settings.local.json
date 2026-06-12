@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Read(//mnt/c/Users/温学周/Desktop/langgraph_test/**)",
+      "Read(///wsl.localhost/Ubuntu//**)",
+      "Read(///wsl.localhost/Ubuntu/etc/**)",
+      "Bash(mount)",
+      "Bash(chmod +x *)",
+      "Bash(git restore *)",
+      "Bash(git update-index *)",
+      "WebFetch(domain:hermes-agent.nousresearch.com)",
+      "WebSearch",
+      "Read(//c/Users/**)",
+      "Read(///wsl.localhost/Ubuntu/home/wxz/**)",
+      "Read(///wsl.localhost/Ubuntu/home/wxz/playwright/node_modules/**)",
+      "Read(///wsl.localhost/Ubuntu/home/wxz/playwright/**)",
+      "Bash(npx playwright *)",
+      "Bash(unzip -l /c/Users/wenxuezhou/Downloads/chrome-linux64.zip)",
+      "Bash(mkdir -p ~/.cache/ms-playwright/chromium-1223)",
+      "Bash(unzip -o /c/Users/wenxuezhou/Downloads/chrome-linux64.zip -d ~/.cache/ms-playwright/chromium-1223/)",
+      "Bash(cp -r /c/Users/温学周/.cache/ms-playwright/chromium-1223/chrome-linux64 ~/.cache/ms-playwright/chromium-1223/)",
+      "Bash(docker exec *)",
+      "Bash(docker pull *)",
+      "Bash(python3 -c \"import sys,json; c=json.load\\(sys.stdin\\); print\\('User:', c.get\\('User',''\\)\\); print\\('Entrypoint:', c.get\\('Entrypoint',''\\)\\); print\\('Cmd:', c.get\\('Cmd',''\\)\\); print\\('Env:', c.get\\('Env',''\\)\\)\")"
+    ]
+  }
+}
