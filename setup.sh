@@ -59,9 +59,19 @@ prompt_dk() {
     done
 }
 
+prompt_ssh() {
+    echo ""
+    echo -e "${BOLD}[3] 宿主机 SSH 用户${NC}"
+    echo -e "  ${DIM}Agent 通过 SSH 连接到宿主机执行命令（SSH backend）。${NC}"
+    local cur="${SSH_USER:-$USER}"
+    read -p "  用户名 (默认: $cur): " val
+    SSH_USER="${val:-$cur}"
+    echo -e "  ${GREEN}✓ SSH 用户: $SSH_USER${NC}"
+}
+
 prompt_soul() {
     echo ""
-    echo -e "${BOLD}[3] SOUL.md 路径${NC}"
+    echo -e "${BOLD}[4] SOUL.md 路径${NC}"
     echo -e "  ${DIM}指向你的 SOUL.md 文件（容器内唯一的 Agent 人格定义）。必填。${NC}"
     while true; do
         local cur="${SOUL_PATH:-}"
@@ -83,10 +93,10 @@ prompt_soul() {
 # ── 写入 .env ──
 write_env() {
     echo ""
-    echo -e "${BOLD}[4] 写入配置${NC}"
+    echo -e "${BOLD}[5] 写入配置${NC}"
     local old_extra=""
     if [ -f "$ENV_FILE" ]; then
-        old_extra=$(grep -v -E "^(DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=)" "$ENV_FILE" 2>/dev/null || true)
+        old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=)" "$ENV_FILE" 2>/dev/null || true)
     fi
 
     # 自动生成 API_SERVER_KEY
@@ -97,6 +107,8 @@ AGENT_NAME=${AGENT_NAME}
 DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
 API_SERVER_KEY=${ask}
 SOUL_PATH=${SOUL_PATH}
+TERMINAL_ENV=ssh
+SSH_USER=${SSH_USER}
 EOF
     if [ -n "$old_extra" ]; then
         echo "" >> "$ENV_FILE"
@@ -105,14 +117,31 @@ EOF
     echo -e "  ${GREEN}✓ .env 已写入${NC}"
 }
 
+# ── 设置 SSH key ──
+setup_ssh_key() {
+    local key="$HOME/.ssh/id_hermes-single"
+    mkdir -p "$HOME/.ssh"
+    if [ ! -f "$key" ]; then
+        echo ""
+        echo -e "${BOLD}  生成 SSH key${NC}"
+        ssh-keygen -t ed25519 -f "$key" -N "" -q
+        cat "${key}.pub" >> "$HOME/.ssh/authorized_keys"
+        chmod 600 "$HOME/.ssh/authorized_keys"
+        echo -e "  ${GREEN}✓ SSH key 已生成并添加到 authorized_keys${NC}"
+    else
+        echo -e "  ${GREEN}✓ SSH key 已存在${NC}"
+    fi
+}
+
 # ── 启动容器 ──
 start_container() {
     echo ""
-    echo -e "${BOLD}[5] 启动容器${NC}"
+    echo -e "${BOLD}[6] 启动／重启容器${NC}"
     read -p "  现在启动? [Y/n]: " yn
     case "$yn" in
         n|N|no)
             echo "  跳过。手动启动: cd $SCRIPT_DIR && docker compose up -d"
+            return 1
             ;;
         *)
             echo "  停止旧容器..."
@@ -121,7 +150,44 @@ start_container() {
             docker compose up -d
             echo -e "  ${GREEN}✓ 容器已启动${NC}"
             echo ""
-            echo "  done."
+            return 0
+            ;;
+    esac
+}
+
+# ── 等待容器就绪 ──
+wait_container() {
+    echo "  等待容器就绪..."
+    for i in $(seq 1 30); do
+        if docker exec hermes-single test -f /opt/data/scripts/activate.sh 2>/dev/null; then
+            echo -e "  ${GREEN}✓ 容器就绪${NC}"
+            return 0
+        fi
+        sleep 1
+    done
+    echo -e "  ${YELLOW}⚠ 等待超时，请稍后手动进入容器${NC}"
+    return 1
+}
+
+# ── 进入容器 ──
+enter_container() {
+    echo ""
+    echo -e "${BOLD}[7] 进入容器${NC}"
+    if ! docker ps --format '{{.Names}}' | grep -q '^hermes-single$' 2>/dev/null; then
+        echo -e "  ${YELLOW}⚠ 容器未运行，请先启动: cd $SCRIPT_DIR && docker compose up -d${NC}"
+        echo "  手动进入: bash exec.sh"
+        return 0
+    fi
+    read -p "  现在进入容器? [Y/n]: " yn
+    case "$yn" in
+        n|N|no)
+            echo "  跳过。手动进入: bash exec.sh"
+            return 0
+            ;;
+        *)
+            wait_container || return 0
+            echo "  进入容器..."
+            docker exec -it hermes-single bash --rcfile /opt/data/scripts/activate.sh
             ;;
     esac
 }
@@ -136,12 +202,13 @@ echo "  无需端口映射，exec 进入容器使用 CLI"
 check_deps
 prompt_name
 prompt_dk
+prompt_ssh
 prompt_soul
 write_env
+setup_ssh_key
 start_container
+enter_container
 
 echo ""
 echo -e "${GREEN}完成。${NC}"
 echo "  下次启动: cd $SCRIPT_DIR && docker compose up -d"
-
-docker exec -it hermes-single bash --rcfile /opt/data/scripts/activate.sh

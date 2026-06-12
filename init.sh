@@ -8,6 +8,12 @@ TEMPLATES="/opt/data/templates"
 PROFILE="${AGENT_NAME:-kaguya}"
 MARKER="$HERMES_HOME/.initialized"
 
+# ── 确保模板渲染需要的变量都有值 ──
+TERMINAL_ENV="${TERMINAL_ENV:-ssh}"
+SSH_HOST="${SSH_HOST:-host.docker.internal}"
+SSH_USER="${SSH_USER:-hermes}"
+export TERMINAL_ENV SSH_HOST SSH_USER
+
 render() {
     python3 -c "
 import os, sys
@@ -50,6 +56,7 @@ mkdir -p /opt/data/scripts
 cat > /opt/data/scripts/activate.sh << 'SCRIPT'
 #!/bin/bash
 source /opt/hermes/.venv/bin/activate
+[ -f /home/hermes/.bashrc ] && source /home/hermes/.bashrc
 SCRIPT
 chmod +x /opt/data/scripts/activate.sh
 

@@ -24,13 +24,13 @@ agent:
   verbose: false
   reasoning_effort: medium
 terminal:
-  backend: local
+  backend: ${TERMINAL_ENV}
   modal_mode: auto
-  cwd: /home/hermes
+  cwd: /home/${SSH_USER}
   timeout: 180
-  ssh_host: ''
-  ssh_user: ''
-  ssh_key: ''
+  ssh_host: ${SSH_HOST}
+  ssh_user: ${SSH_USER}
+  ssh_key: /home/hermes/.ssh/id_hermes-single
   env_passthrough: []
   shell_init_files: []
   auto_source_bashrc: true
