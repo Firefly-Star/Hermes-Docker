@@ -9,6 +9,7 @@ services:
     ports:
       - "127.0.0.1:${PORT:-8642}:8642"
     environment:
+      - AGENT_NAME=${AGENT_NAME:-kaguya}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:?error}
       - API_SERVER_KEY=${API_SERVER_KEY:-}
       - API_SERVER_PORT=${PORT:-8642}

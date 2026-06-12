@@ -5,7 +5,7 @@ source /opt/hermes/.venv/bin/activate
 
 HERMES_HOME="${HERMES_HOME:-/opt/data}"
 TEMPLATES="/opt/data/templates"
-PROFILE="kaguya"
+PROFILE="${AGENT_NAME:-kaguya}"
 MARKER="$HERMES_HOME/.initialized"
 
 render() {

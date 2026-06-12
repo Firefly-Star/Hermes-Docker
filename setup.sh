@@ -33,9 +33,18 @@ check_deps() {
 
 # ── 交互配置 ──
 
+prompt_name() {
+    echo ""
+    echo -e "${BOLD}[1] Agent 名称${NC}"
+    local cur="${AGENT_NAME:-kaguya}"
+    read -p "  名称 (默认: $cur): " val
+    AGENT_NAME="${val:-$cur}"
+    echo -e "  ${GREEN}✓ Agent: $AGENT_NAME${NC}"
+}
+
 prompt_dk() {
     echo ""
-    echo -e "${BOLD}[1] DeepSeek API Key${NC}"
+    echo -e "${BOLD}[2] DeepSeek API Key${NC}"
     while true; do
         local cur="${DEEPSEEK_API_KEY:-}"
         [ -n "$cur" ] && echo -e "  ${DIM}当前: ${cur:0:8}...${NC}"
@@ -52,7 +61,7 @@ prompt_dk() {
 
 prompt_soul() {
     echo ""
-    echo -e "${BOLD}[2] SOUL.md 路径${NC}"
+    echo -e "${BOLD}[3] SOUL.md 路径${NC}"
     echo -e "  ${DIM}指向你的 SOUL.md 文件（容器内唯一的 Agent 人格定义）。必填。${NC}"
     while true; do
         local cur="${SOUL_PATH:-}"
@@ -74,7 +83,7 @@ prompt_soul() {
 # ── 写入 .env ──
 write_env() {
     echo ""
-    echo -e "${BOLD}[3] 写入配置${NC}"
+    echo -e "${BOLD}[4] 写入配置${NC}"
     local old_extra=""
     if [ -f "$ENV_FILE" ]; then
         old_extra=$(grep -v -E "^(DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=)" "$ENV_FILE" 2>/dev/null || true)
@@ -84,6 +93,7 @@ write_env() {
     local ask="${API_SERVER_KEY:-$($PYTHON -c "import secrets; print(secrets.token_hex(32))" 2>/dev/null)}"
 
     cat > "$ENV_FILE" << EOF
+AGENT_NAME=${AGENT_NAME}
 DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
 API_SERVER_KEY=${ask}
 SOUL_PATH=${SOUL_PATH}
@@ -98,7 +108,7 @@ EOF
 # ── 启动容器 ──
 start_container() {
     echo ""
-    echo -e "${BOLD}[4] 启动容器${NC}"
+    echo -e "${BOLD}[5] 启动容器${NC}"
     read -p "  现在启动? [Y/n]: " yn
     case "$yn" in
         n|N|no)
@@ -124,6 +134,7 @@ echo "  一个容器，一个 profile，你的 SOUL.md"
 echo "  无需端口映射，exec 进入容器使用 CLI"
 
 check_deps
+prompt_name
 prompt_dk
 prompt_soul
 write_env
