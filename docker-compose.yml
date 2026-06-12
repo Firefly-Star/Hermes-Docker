@@ -1,0 +1,24 @@
+services:
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-single
+    restart: unless-stopped
+    command: bash /opt/init.sh
+    stdin_open: true
+    tty: true
+    ports:
+      - "127.0.0.1:${PORT:-8642}:8642"
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:?error}
+      - API_SERVER_KEY=${API_SERVER_KEY:-}
+      - API_SERVER_PORT=${PORT:-8642}
+    volumes:
+      - hermes-data:/opt/data
+      - ./init.sh:/opt/init.sh:ro
+      - ./templates:/opt/data/templates:ro
+      - ${SOUL_PATH}:/opt/data/custom_SOUL.md:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  hermes-data:
