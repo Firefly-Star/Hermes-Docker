@@ -24,6 +24,10 @@ hermes -p <agent_name> run <指令>   # 单条指令
 
 - **一台 Linux 服务器**（或虚拟机），通过 SSH 连接操作 — 所有命令在服务器上执行
 - **Docker**（含 `docker compose` 插件）已安装在服务器上
+- **OpenSSH 服务端** — 用于 Agent 通过 SSH 回连宿主机执行命令
+  ```bash
+  sudo apt update && sudo apt install -y openssh-server
+  ```
 - **DeepSeek API Key** — 从 [platform.deepseek.com](https://platform.deepseek.com) 获取
 
 ## 配置

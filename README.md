@@ -24,6 +24,10 @@ hermes -p <agent_name> run <cmd>  # single command
 
 - A **Linux server** (or VM) that you can SSH into — all commands run on the server
 - **Docker** with `docker compose` plugin installed on that server
+- **OpenSSH server** — the agent uses SSH back to the host to execute commands
+  ```bash
+  sudo apt update && sudo apt install -y openssh-server
+  ```
 - **DeepSeek API key** — get one from [platform.deepseek.com](https://platform.deepseek.com)
 
 ## Configuration
