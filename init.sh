@@ -9,6 +9,8 @@ PROFILE="${AGENT_NAME:-kaguya}"
 MARKER="$HERMES_HOME/.initialized"
 
 # ── 确保模板渲染需要的变量都有值 ──
+# SSH_HOST 由 setup.sh 自动检测并写入 .env
+# 未运行 setup.sh 时默认使用 host.docker.internal（原生 Linux 有效）
 TERMINAL_ENV="${TERMINAL_ENV:-ssh}"
 SSH_HOST="${SSH_HOST:-host.docker.internal}"
 SSH_USER="${SSH_USER:-hermes}"
@@ -49,6 +51,16 @@ if [ -f "$HERMES_HOME/custom_SOUL.md" ]; then
     echo "=== SOUL.md loaded ==="
 else
     echo "=== WARNING: custom_SOUL.md not found ==="
+fi
+
+# ── 首次启动：预填部署上下文到 Agent 记忆 ──
+MEMORY_DIR="$HERMES_HOME/profiles/$PROFILE/memories"
+MEMORY_MARKER="$HERMES_HOME/.memory_seeded"
+if [ ! -f "$MEMORY_MARKER" ]; then
+    mkdir -p "$MEMORY_DIR"
+    cp "$TEMPLATES/MEMORY.md" "$MEMORY_DIR/MEMORY.md"
+    touch "$MEMORY_MARKER"
+    echo "=== Memory seeded with deployment context ==="
 fi
 
 # ── 写激活脚本到持久卷（/opt/data/ 一定可写） ──
