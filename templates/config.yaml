@@ -14,6 +14,7 @@ mcp_servers:
     url: "http://host.docker.internal:8931/mcp"
     headers:
       Host: "localhost:8931"
+      Accept: "application/json, text/event-stream"
     timeout: 120
 agent:
   max_turns: 90
