@@ -59,18 +59,29 @@ MEMORY_MARKER="$HERMES_HOME/.memory_seeded"
 if [ ! -f "$MEMORY_MARKER" ]; then
     mkdir -p "$MEMORY_DIR"
     cp "$TEMPLATES/MEMORY.md" "$MEMORY_DIR/MEMORY.md"
+    cp "$TEMPLATES/USER.md" "$MEMORY_DIR/USER.md"
     touch "$MEMORY_MARKER"
     echo "=== Memory seeded with deployment context ==="
 fi
 
 # ── 写激活脚本到持久卷（/opt/data/ 一定可写） ──
 mkdir -p /opt/data/scripts
-cat > /opt/data/scripts/activate.sh << 'SCRIPT'
+cat > /opt/data/scripts/activate.sh << SCRIPT
 #!/bin/bash
 source /opt/hermes/.venv/bin/activate
 [ -f /home/hermes/.bashrc ] && source /home/hermes/.bashrc
+
+# 快捷命令：${PROFILE} chat  =  hermes -p ${PROFILE} chat
+${PROFILE}() {
+    hermes -p ${PROFILE} "\$@"
+}
 SCRIPT
 chmod +x /opt/data/scripts/activate.sh
+
+# 同时也写到 .bashrc，保证 docker exec -it hermes-single bash 也能用
+echo "" >> /home/hermes/.bashrc
+echo "# Hermes profile shortcut" >> /home/hermes/.bashrc
+echo "${PROFILE}() { hermes -p ${PROFILE} \"\$@\"; }" >> /home/hermes/.bashrc
 
 # ── 后台启动 gateway（内部使用，不暴露端口） ──
 echo "=== Starting Hermes gateway (profile: $PROFILE) ==="

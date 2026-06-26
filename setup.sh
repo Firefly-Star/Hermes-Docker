@@ -98,10 +98,33 @@ prompt_soul() {
     done
 }
 
+prompt_memory_tool() {
+    echo ""
+    echo -e "${BOLD}[5] Memory 写入工具${NC}"
+    echo -e "  ${DIM}禁用后 Agent 无法自动保存 memory，但能继续读取已有的 memory 和 user 数据。${NC}"
+    echo -e "  ${DIM}适合不希望 memory 被覆盖的场景。${NC}"
+    local cur="${MEMORY_TOOL_ENABLED:-true}"
+    local label="开启"
+    [ "$cur" = "false" ] && label="关闭"
+    read -p "  启用? [Y/n] (当前: $label): " val
+    case "$val" in
+        n|N|no)
+            MEMORY_TOOL_ENABLED=false
+            DISABLED_TOOLSETS="[memory]"
+            echo -e "  ${YELLOW}⚠ 已禁用 memory 写入工具${NC}"
+            ;;
+        *)
+            MEMORY_TOOL_ENABLED=true
+            DISABLED_TOOLSETS="[]"
+            echo -e "  ${GREEN}✓ memory 工具已开启${NC}"
+            ;;
+    esac
+}
+
 # ── SSH 服务安装与启动（兼容 WSL / 原生 Linux） ──
 setup_ssh_server() {
     echo ""
-    echo -e "${BOLD}[5] SSH 服务配置${NC}"
+    echo -e "${BOLD}[6] SSH 服务配置${NC}"
 
     if is_wsl; then
         echo -e "  ${DIM}检测到 WSL 环境${NC}"
@@ -165,7 +188,7 @@ setup_ssh_server() {
 # ── 检测宿主机 IP ──
 detect_ssh_host() {
     echo ""
-    echo -e "${BOLD}[6] 宿主机 IP 地址${NC}"
+    echo -e "${BOLD}[7] 宿主机 IP 地址${NC}"
     echo -e "  ${DIM}Agent 通过此地址 SSH 连接回宿主机执行命令。${NC}"
 
     local auto_ip=""
@@ -197,7 +220,7 @@ detect_ssh_host() {
 # ── 设置 SSH 密钥（id_hermes-single + authorized_keys） ──
 setup_ssh_key() {
     echo ""
-    echo -e "${BOLD}[7] SSH 密钥配置${NC}"
+    echo -e "${BOLD}[8] SSH 密钥配置${NC}"
     local key="$HOME/.ssh/id_hermes-single"
     mkdir -p "$HOME/.ssh"
     if [ ! -f "$key" ]; then
@@ -226,10 +249,10 @@ setup_ssh_key() {
 # ── 写入 .env ──
 write_env() {
     echo ""
-    echo -e "${BOLD}[8] 写入配置${NC}"
+    echo -e "${BOLD}[9] 写入配置${NC}"
     local old_extra=""
     if [ -f "$ENV_FILE" ]; then
-        old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=)" "$ENV_FILE" 2>/dev/null || true)
+        old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=|MEMORY_TOOL_ENABLED=|DISABLED_TOOLSETS=)" "$ENV_FILE" 2>/dev/null || true)
     fi
 
     # 自动生成 API_SERVER_KEY
@@ -243,6 +266,8 @@ SOUL_PATH=${SOUL_PATH}
 TERMINAL_ENV=ssh
 SSH_HOST=${SSH_HOST}
 SSH_USER=${SSH_USER}
+MEMORY_TOOL_ENABLED=${MEMORY_TOOL_ENABLED:-true}
+DISABLED_TOOLSETS=${DISABLED_TOOLSETS:-[]}
 EOF
     if [ -n "$old_extra" ]; then
         echo "" >> "$ENV_FILE"
@@ -254,7 +279,7 @@ EOF
 # ── 启动容器 ──
 start_container() {
     echo ""
-    echo -e "${BOLD}[9] 启动／重启容器${NC}"
+    echo -e "${BOLD}[10] 启动／重启容器${NC}"
     read -p "  现在启动? [Y/n]: " yn
     case "$yn" in
         n|N|no)
@@ -289,7 +314,7 @@ wait_container() {
 # ── 进入容器 ──
 enter_container() {
     echo ""
-    echo -e "${BOLD}[10] 进入容器${NC}"
+    echo -e "${BOLD}[11] 进入容器${NC}"
     if docker ps --format '{{.Names}}' | grep -q '^hermes-single$' 2>/dev/null; then
         # 容器正在运行，直接问要不要进
         read -p "  现在进入容器? [Y/n]: " yn
@@ -349,6 +374,7 @@ prompt_name
 prompt_dk
 prompt_ssh_user
 prompt_soul
+prompt_memory_tool
 setup_ssh_server
 detect_ssh_host
 setup_ssh_key
