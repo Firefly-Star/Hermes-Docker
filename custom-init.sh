@@ -32,3 +32,6 @@ mcp_servers:
     timeout: 120
 MCPEOF
 fi
+
+# ── 初始化标记（供 setup.sh wait_container 检测） ──
+touch "$HERMES_HOME/.initialized" 2>/dev/null || true
