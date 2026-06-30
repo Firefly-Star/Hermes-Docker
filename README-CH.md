@@ -87,6 +87,27 @@ docker compose restart
 3. 配置完成后自动 `exec` 进入容器，Hermes 虚拟环境已预先激活
 4. 在容器内使用 `hermes -p <agent_name> ...` 命令
 
+## 疑难解答
+
+### SSH 宿主机 IP 检测
+
+`setup.sh` 会自动检测宿主机 IP 并写入 `SSH_HOST`，供容器内 Agent 通过 SSH 回连宿主机执行命令。
+
+检测方式：
+- **原生 Linux**：使用 `ip route get 1` 获取默认路由的源 IP
+- **WSL**：使用 `hostname -I` 取第一个非环回 IP
+
+**常见问题：**
+
+**WSL 下检测到的 IP 连不上** — WSL `hostname -I` 拿到的是 WSL 虚拟网卡的地址（`172.x.x.x`），不是 Windows 宿主机的地址（`192.168.x.x`）。如果 SSH 连接失败，可以手动修改 `.env` 中的 `SSH_HOST` 为 Windows 宿主机的实际 IP。
+
+修改后重启容器：
+```bash
+docker compose up -d
+```
+
+**更换网络环境后 IP 变了** — 例如从办公室 WiFi 切换到家里网络。重新运行 `setup.sh` 会重新检测并更新 `SSH_HOST`；或手动编辑 `.env` 后重启容器即可。
+
 ## 协议
 
 本项目为配置封装。底层 Hermes agent 由 Nous Research 许可。
