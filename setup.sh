@@ -81,13 +81,12 @@ prompt_ssh_user() {
 prompt_soul() {
     echo ""
     echo -e "${BOLD}[4] SOUL.md 路径${NC}"
-    echo -e "  ${DIM}指向你的 SOUL.md 文件（Agent 人格定义）。留空将使用 ./SOUL.md${NC}"
-    local default="./SOUL.md"
-    local cur="${SOUL_PATH:-$default}"
+    echo -e "  ${DIM}指向你的 SOUL.md 文件（Agent 人格定义）。${NC}"
+    local cur="${SOUL_PATH:-./SOUL.md}"
     [ -n "$SOUL_PATH" ] && echo -e "  ${DIM}当前: $SOUL_PATH${NC}"
     while true; do
-        read -p "  路径 (默认: ./SOUL.md): " val
-        val="${val:-$default}"
+        read -p "  路径 (默认: $cur): " val
+        val="${val:-$cur}"
         if [ ! -f "$val" ]; then
             echo -e "  ${RED}⚠ 文件不存在: $(realpath "$val" 2>/dev/null || echo "$val")${NC}"
         else
@@ -115,10 +114,14 @@ prompt_memory_tool() {
             SKILL_NUDGE_INTERVAL=0
             echo -e "  ${YELLOW}⚠ 已禁用 memory 写入工具，后台 review 也已关闭${NC}"
             ;;
-        *)
+        y|Y|yes)
             MEMORY_TOOL_ENABLED=true
             DISABLED_TOOLSETS="[]"
             echo -e "  ${GREEN}✓ memory 工具已开启${NC}"
+            ;;
+        *)
+            MEMORY_TOOL_ENABLED="${cur}"
+            echo -e "  ${GREEN}✓ 保持当前设置${NC}"
             ;;
     esac
 }
@@ -137,9 +140,13 @@ prompt_tool_progress() {
             TOOL_PROGRESS=verbose
             echo -e "  ${GREEN}✓ 将显示完整参数${NC}"
             ;;
-        *)
+        n|N|no)
             TOOL_PROGRESS=all
             echo -e "  ${GREEN}✓ 使用简短预览${NC}"
+            ;;
+        *)
+            TOOL_PROGRESS="${cur}"
+            echo -e "  ${GREEN}✓ 保持当前设置${NC}"
             ;;
     esac
 }
@@ -159,10 +166,14 @@ prompt_playwright_mcp() {
             MCP_PLAYWRIGHT_ENABLED=true
             echo -e "  ${GREEN}✓ 将自动部署 Playwright MCP${NC}"
             ;;
-        *)
+        n|N|no)
             MCP_PLAYWRIGHT_ENABLED=false
             echo -e "  ${YELLOW}⚠ 跳过 Playwright MCP${NC}"
             echo -e "  ${DIM}  需要时可根据子仓库 README 自行配置，或重新运行 setup 选择启用${NC}"
+            ;;
+        *)
+            MCP_PLAYWRIGHT_ENABLED="${cur}"
+            echo -e "  ${GREEN}✓ 保持当前设置${NC}"
             ;;
     esac
 }
@@ -330,6 +341,8 @@ EOF
 start_container() {
     echo ""
     echo -e "${BOLD}[12] 启动／重启容器${NC}"
+    # 确保 mcp 共享网络存在
+    docker network inspect mcp-net >/dev/null 2>&1 || docker network create mcp-net
     # 如果启用了 playwright，先确保它在运行
     if [ "${MCP_PLAYWRIGHT_ENABLED:-false}" = "true" ]; then
         echo "  检查 Playwright MCP 容器..."
@@ -355,8 +368,6 @@ start_container() {
         *)
             echo "  停止旧容器..."
             docker compose down 2>/dev/null || true
-            # 确保 mcp 共享网络存在
-            docker network inspect mcp-net >/dev/null 2>&1 || docker network create mcp-net
             echo "  启动新容器..."
             docker compose up -d
             echo -e "  ${GREEN}✓ 容器已启动${NC}"
