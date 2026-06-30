@@ -22,6 +22,9 @@ services:
       - SSH_HOST=${SSH_HOST:-}
       - SSH_USER=${SSH_USER:-}
       - DISABLED_TOOLSETS=${DISABLED_TOOLSETS:-[]}
+      - MEMORY_NUDGE_INTERVAL=${MEMORY_NUDGE_INTERVAL:-10}
+      - SKILL_NUDGE_INTERVAL=${SKILL_NUDGE_INTERVAL:-10}
+      - TOOL_PROGRESS=${TOOL_PROGRESS:-all}
     volumes:
       - hermes-data:/opt/data
       - ./init.sh:/opt/init.sh:ro
