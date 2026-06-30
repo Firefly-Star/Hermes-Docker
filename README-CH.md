@@ -67,7 +67,7 @@ docker compose restart
 ```
 .
 ├── setup.sh              # 交互式配置向导（运行这个）
-├── init.sh               # 容器入口脚本（挂载到容器内）
+├── custom-init.sh         # 容器启动 hook（cont-init.d，优先于系统 init 执行）
 ├── docker-compose.yml    # 服务定义
 ├── .env                  # 配置（自动生成，已 gitignore）
 ├── SOUL.md               # 代理人格定义（编辑这个）
@@ -83,7 +83,7 @@ docker compose restart
 ## 工作原理
 
 1. `setup.sh` 收集配置，写入 `.env`，然后 `docker compose up -d` 启动容器
-2. 容器启动时运行 `init.sh`：渲染配置模板、创建 Hermes profile、启动 gateway、保持容器运行
+2. 容器启动时运行 `custom-init.sh`（作为 cont-init.d hook）：渲染配置模板、创建 Hermes profile、按需配置 MCP
 3. 配置完成后自动 `exec` 进入容器，Hermes 虚拟环境已预先激活
 4. 在容器内使用 `hermes -p <agent_name> ...` 命令
 
