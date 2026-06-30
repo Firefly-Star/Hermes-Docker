@@ -378,14 +378,13 @@ start_container() {
 
 # ── 等待容器就绪 ──
 wait_container() {
-    echo "  等待容器就绪（healthcheck）..."
+    echo "  等待容器就绪..."
     for i in $(seq 1 30); do
-        local status=$(docker inspect --format='{{.State.Health.Status}}' hermes-single 2>/dev/null)
-        if [ "$status" = "healthy" ]; then
+        if docker exec hermes-single test -f /opt/data/.initialized 2>/dev/null; then
             echo -e "  ${GREEN}✓ 容器就绪${NC}"
             return 0
         fi
-        sleep 2
+        sleep 1
     done
     echo -e "  ${YELLOW}⚠ 等待超时，请稍后手动进入容器${NC}"
     return 1

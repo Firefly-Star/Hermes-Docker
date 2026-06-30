@@ -5,12 +5,6 @@ services:
     restart: unless-stopped
     stdin_open: true
     tty: true
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "s6-supervise.*main-hermes"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     environment:
       - AGENT_NAME=${AGENT_NAME:-kaguya}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:?error}
