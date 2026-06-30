@@ -87,6 +87,26 @@ To use a different SOUL.md file, update `SOUL_PATH` in `.env` and restart.
 3. After setup, you are `exec`'d into the container with the Hermes venv pre-activated
 4. Use `hermes -p <agent_name> ...` commands inside the container
 
+## Troubleshooting
+
+### SSH Host IP Detection
+
+`setup.sh` auto-detects the host IP and writes it to `SSH_HOST`, which the container uses to SSH back to the host for command execution.
+
+Detection methods:
+- **Native Linux**: Uses `ip route get 1` to get the source IP of the default route
+- **WSL**: Uses `hostname -I` and takes the first non-loopback IP
+
+**Common issues:**
+
+**WSL-detected IP is unreachable** — `hostname -I` in WSL returns the WSL virtual NIC address (`172.x.x.x`), not the Windows host address (`192.168.x.x`). If SSH connections fail, manually edit `SSH_HOST` in `.env` to your Windows host's actual IP, then restart:
+
+```bash
+docker compose up -d
+```
+
+**IP changes after switching networks** — E.g. moving from office WiFi to home network. Re-run `setup.sh` to re-detect, or manually update `SSH_HOST` in `.env` and restart the container.
+
 ## License
 
 This project is a configuration wrapper. The underlying Hermes agent is licensed by Nous Research.
