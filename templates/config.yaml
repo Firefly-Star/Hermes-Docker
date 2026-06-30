@@ -195,7 +195,7 @@ display:
   busy_input_mode: interrupt
   tui_auto_resume_recent: false
   bell_on_complete: false
-  show_reasoning: false
+  show_reasoning: ${SHOW_REASONING:-false}
   streaming: true
   timestamps: false
   final_response_markdown: strip
