@@ -40,7 +40,6 @@ hermes -p <agent_name> run <指令>   # 单条指令
 | `AGENT_NAME` | `kaguya` | Hermes profile / 代理名称 |
 | `SOUL_PATH` | — | SOUL.md 文件路径 |
 | `API_SERVER_KEY` | 自动生成 | 内部 API 网关密钥 |
-| `PORT` | `8642` | API 服务端口 |
 
 ### 修改代理名称
 
