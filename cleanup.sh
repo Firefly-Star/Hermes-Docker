@@ -64,10 +64,13 @@ SSH_KEY="$HOME/.ssh/id_hermes-single"
 if [ -f "$SSH_KEY" ] && confirm_step "清理 SSH 密钥 (id_hermes-single)"; then
     PUB_KEY="${SSH_KEY}.pub"
     if [ -f "$PUB_KEY" ] && [ -f "$HOME/.ssh/authorized_keys" ]; then
-        grep -vFf "$PUB_KEY" "$HOME/.ssh/authorized_keys" > /tmp/authorized_keys_tmp 2>/dev/null || true
-        mv /tmp/authorized_keys_tmp "$HOME/.ssh/authorized_keys" 2>/dev/null || true
-        chmod 600 "$HOME/.ssh/authorized_keys" 2>/dev/null || true
-        echo -e "  ${GREEN}✓ authorized_keys 条目已移除${NC}"
+        local tmp
+        tmp=$(mktemp) || true
+        if [ -n "$tmp" ]; then
+            grep -vFf "$PUB_KEY" "$HOME/.ssh/authorized_keys" > "$tmp" && mv "$tmp" "$HOME/.ssh/authorized_keys" || rm -f "$tmp"
+            chmod 600 "$HOME/.ssh/authorized_keys" 2>/dev/null || true
+            echo -e "  ${GREEN}✓ authorized_keys 条目已移除${NC}"
+        fi
     fi
     rm -f "$SSH_KEY" "${SSH_KEY}.pub"
     echo -e "  ${GREEN}✓ SSH 密钥已删除${NC}"
