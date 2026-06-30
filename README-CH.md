@@ -62,6 +62,8 @@ docker compose restart
 
 如果想用不同的 SOUL.md 文件，更新 `.env` 中的 `SOUL_PATH` 然后重启。
 
+你也可以修改 `templates/MEMORY.md` 和 `templates/USER.md`，让 Agent 在首次启动时自动加载更适合你的记忆和用户画像。
+
 ## 文件结构
 
 ```
