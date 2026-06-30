@@ -1,16 +1,8 @@
 services:
   hermes:
-    image: nousresearch/hermes-agent:latest
+    image: nousresearch/hermes-agent:v2026.6.5
     container_name: hermes-single
     restart: unless-stopped
-    entrypoint: ["bash", "-c"]
-    command:
-      - >
-        chown -R 10000:10000 /home/hermes/ /opt/data/ 2>/dev/null || true;
-        grep -q "source /opt/hermes/.venv/bin/activate" /root/.bashrc 2>/dev/null ||
-        echo "source /opt/hermes/.venv/bin/activate" >> /root/.bashrc;
-        exec /usr/bin/tini -g --
-        /opt/hermes/docker/entrypoint.sh bash /opt/init.sh
     stdin_open: true
     tty: true
     environment:
@@ -25,9 +17,13 @@ services:
       - MEMORY_NUDGE_INTERVAL=${MEMORY_NUDGE_INTERVAL:-10}
       - SKILL_NUDGE_INTERVAL=${SKILL_NUDGE_INTERVAL:-10}
       - TOOL_PROGRESS=${TOOL_PROGRESS:-all}
+      - MCP_PLAYWRIGHT_ENABLED=${MCP_PLAYWRIGHT_ENABLED:-false}
+    networks:
+      - default
+      - mcp-net
     volumes:
       - hermes-data:/opt/data
-      - ./init.sh:/opt/init.sh:ro
+      - ./custom-init.sh:/etc/cont-init.d/00-custom-init
       - ./templates:/opt/data/templates:ro
       - ${SOUL_PATH}:/opt/data/custom_SOUL.md:ro
       - ~/.ssh/id_hermes-single:/home/hermes/.ssh/id_hermes-single:ro
@@ -36,3 +32,8 @@ services:
 
 volumes:
   hermes-data:
+
+networks:
+  mcp-net:
+    name: mcp-net
+    external: true

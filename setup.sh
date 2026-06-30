@@ -144,10 +144,34 @@ prompt_tool_progress() {
     esac
 }
 
+prompt_playwright_mcp() {
+    echo ""
+    echo -e "${BOLD}[7] 容器化 Playwright MCP 服务器${NC}"
+    echo -e "  ${DIM}通过 Docker 部署 Playwright MCP 浏览器，让 Agent 能打开网页、截图、交互。${NC}"
+    echo -e "  ${DIM}需要先 clone 子仓库：${NC}"
+    echo -e "  ${DIM}  git clone https://github.com/Firefly-Star/playwright-mcp-server-docker.git ~/playwright${NC}"
+    local cur="${MCP_PLAYWRIGHT_ENABLED:-false}"
+    local label="不启用"
+    [ "$cur" = "true" ] && label="启用"
+    read -p "  启用? [y/N] (当前: $label): " val
+    case "$val" in
+        y|Y|yes)
+            MCP_PLAYWRIGHT_ENABLED=true
+            echo -e "  ${GREEN}✓ 将自动部署 Playwright MCP${NC}"
+            ;;
+        *)
+            MCP_PLAYWRIGHT_ENABLED=false
+            echo -e "  ${YELLOW}⚠ 跳过 Playwright MCP${NC}"
+            echo -e "  ${DIM}  仓库内含 playwright-mcp-server-docker 子仓库，需要时可自行配置${NC}"
+            echo -e "  ${DIM}  或重新运行 setup 选择启用${NC}"
+            ;;
+    esac
+}
+
 # ── SSH 服务安装与启动（兼容 WSL / 原生 Linux） ──
 setup_ssh_server() {
     echo ""
-    echo -e "${BOLD}[7] SSH 服务配置${NC}"
+    echo -e "${BOLD}[8] SSH 服务配置${NC}"
 
     if is_wsl; then
         echo -e "  ${DIM}检测到 WSL 环境${NC}"
@@ -211,7 +235,7 @@ setup_ssh_server() {
 # ── 检测宿主机 IP ──
 detect_ssh_host() {
     echo ""
-    echo -e "${BOLD}[8] 宿主机 IP 地址${NC}"
+    echo -e "${BOLD}[9] 宿主机 IP 地址${NC}"
     echo -e "  ${DIM}Agent 通过此地址 SSH 连接回宿主机执行命令。${NC}"
 
     local auto_ip=""
@@ -243,7 +267,7 @@ detect_ssh_host() {
 # ── 设置 SSH 密钥（id_hermes-single + authorized_keys） ──
 setup_ssh_key() {
     echo ""
-    echo -e "${BOLD}[9] SSH 密钥配置${NC}"
+    echo -e "${BOLD}[10] SSH 密钥配置${NC}"
     local key="$HOME/.ssh/id_hermes-single"
     mkdir -p "$HOME/.ssh"
     if [ ! -f "$key" ]; then
@@ -272,10 +296,10 @@ setup_ssh_key() {
 # ── 写入 .env ──
 write_env() {
     echo ""
-    echo -e "${BOLD}[10] 写入配置${NC}"
+    echo -e "${BOLD}[11] 写入配置${NC}"
     local old_extra=""
     if [ -f "$ENV_FILE" ]; then
-        old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=|MEMORY_TOOL_ENABLED=|DISABLED_TOOLSETS=)" "$ENV_FILE" 2>/dev/null || true)
+        old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=|MEMORY_TOOL_ENABLED=|DISABLED_TOOLSETS=|MEMORY_NUDGE_INTERVAL=|SKILL_NUDGE_INTERVAL=|TOOL_PROGRESS=|MCP_PLAYWRIGHT_ENABLED=)" "$ENV_FILE" 2>/dev/null || true)
     fi
 
     # 自动生成 API_SERVER_KEY
@@ -294,6 +318,7 @@ DISABLED_TOOLSETS=${DISABLED_TOOLSETS:-[]}
 MEMORY_NUDGE_INTERVAL=${MEMORY_NUDGE_INTERVAL:-10}
 SKILL_NUDGE_INTERVAL=${SKILL_NUDGE_INTERVAL:-10}
 TOOL_PROGRESS=${TOOL_PROGRESS:-all}
+MCP_PLAYWRIGHT_ENABLED=${MCP_PLAYWRIGHT_ENABLED:-false}
 EOF
     if [ -n "$old_extra" ]; then
         echo "" >> "$ENV_FILE"
@@ -305,7 +330,23 @@ EOF
 # ── 启动容器 ──
 start_container() {
     echo ""
-    echo -e "${BOLD}[11] 启动／重启容器${NC}"
+    echo -e "${BOLD}[12] 启动／重启容器${NC}"
+    # 如果启用了 playwright，先确保它在运行
+    if [ "${MCP_PLAYWRIGHT_ENABLED:-false}" = "true" ]; then
+        echo "  检查 Playwright MCP 容器..."
+        if [ -d ~/playwright ]; then
+            if ! docker ps --format '{{.Names}}' | grep -q '^playwright-mcp$' 2>/dev/null; then
+                echo "  启动 Playwright MCP..."
+                (cd ~/playwright && docker compose up -d)
+                echo -e "  ${GREEN}✓ Playwright MCP 已启动${NC}"
+            else
+                echo -e "  ${GREEN}✓ Playwright MCP 已在运行${NC}"
+            fi
+        else
+            echo -e "  ${YELLOW}⚠ ~/playwright 目录不存在，跳过 Playwright MCP${NC}"
+            echo -e "  ${DIM}  请先 clone: git clone https://github.com/Firefly-Star/playwright-mcp-server-docker.git ~/playwright${NC}"
+        fi
+    fi
     read -p "  现在启动? [Y/n]: " yn
     case "$yn" in
         n|N|no)
@@ -315,6 +356,8 @@ start_container() {
         *)
             echo "  停止旧容器..."
             docker compose down 2>/dev/null || true
+            # 确保 mcp 共享网络存在
+            docker network inspect mcp-net >/dev/null 2>&1 || docker network create mcp-net
             echo "  启动新容器..."
             docker compose up -d
             echo -e "  ${GREEN}✓ 容器已启动${NC}"
@@ -340,7 +383,7 @@ wait_container() {
 # ── 进入容器 ──
 enter_container() {
     echo ""
-    echo -e "${BOLD}[12] 进入容器${NC}"
+    echo -e "${BOLD}[13] 进入容器${NC}"
     if docker ps --format '{{.Names}}' | grep -q '^hermes-single$' 2>/dev/null; then
         # 容器正在运行，直接问要不要进
         read -p "  现在进入容器? [Y/n]: " yn
@@ -402,6 +445,7 @@ prompt_ssh_user
 prompt_soul
 prompt_memory_tool
 prompt_tool_progress
+prompt_playwright_mcp
 setup_ssh_server
 detect_ssh_host
 setup_ssh_key
