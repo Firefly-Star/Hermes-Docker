@@ -366,6 +366,14 @@ start_container() {
             return 0
             ;;
         *)
+            # 检查 SSH key 是否存在（docker-compose 会 bind mount，文件不存在则启动失败）
+            if [ ! -f "$HOME/.ssh/id_hermes-single" ]; then
+                echo -e "  ${RED}⚠ SSH 密钥不存在: ~/.ssh/id_hermes-single${NC}"
+                echo -e "  ${DIM}  请先运行 setup.sh 完成 SSH 密钥配置，或手动生成:${NC}"
+                echo -e "  ${DIM}    ssh-keygen -t ed25519 -f ~/.ssh/id_hermes-single -N \"\"${NC}"
+                echo -e "  ${DIM}    cat ~/.ssh/id_hermes-single.pub >> ~/.ssh/authorized_keys${NC}"
+                return 1
+            fi
             echo "  停止旧容器..."
             docker compose down 2>/dev/null || true
             echo "  启动新容器..."
@@ -448,6 +456,8 @@ echo -e "${DIM}检查 sudo 权限...${NC}"
 sudo -v
 # 后台续期（脚本退出时自动结束）
 (while true; do sudo -n true; sleep 60; done) 2>/dev/null &
+SUDO_PID=$!
+trap 'kill $SUDO_PID 2>/dev/null; wait $SUDO_PID 2>/dev/null' EXIT INT TERM
 
 prompt_name
 prompt_dk

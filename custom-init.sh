@@ -25,12 +25,14 @@ fi
 
 # ── 按条件追加 MCP 配置（playwright） ──
 if [ "${MCP_PLAYWRIGHT_ENABLED:-false}" = "true" ]; then
-    cat >> "$HERMES_HOME/profiles/$PROFILE/config.yaml" << 'MCPEOF'
+    if ! grep -q "playwright-mcp" "$HERMES_HOME/profiles/$PROFILE/config.yaml" 2>/dev/null; then
+        cat >> "$HERMES_HOME/profiles/$PROFILE/config.yaml" << 'MCPEOF'
 mcp_servers:
   playwright:
     url: "http://playwright-mcp:8931/mcp"
     timeout: 120
 MCPEOF
+    fi
 fi
 
 # ── 初始化标记（供 setup.sh wait_container 检测） ──
