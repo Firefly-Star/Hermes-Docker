@@ -45,6 +45,17 @@ if [ -n "$API_SERVER_KEY" ]; then
 fi
 render "$TEMPLATES/config.yaml" > "$HERMES_HOME/profiles/$PROFILE/config.yaml"
 
+# ── 按条件追加 MCP 配置（playwright） ──
+if [ "${MCP_PLAYWRIGHT_ENABLED:-false}" = "true" ]; then
+    cat >> "$HERMES_HOME/profiles/$PROFILE/config.yaml" << 'MCPEOF'
+mcp_servers:
+  playwright:
+    url: "http://playwright-mcp:8931/mcp"
+    timeout: 120
+MCPEOF
+    echo "=== MCP playwright configured ==="
+fi
+
 # ── 复制用户 SOUL.md ──
 if [ -f "$HERMES_HOME/custom_SOUL.md" ]; then
     cp "$HERMES_HOME/custom_SOUL.md" "$HERMES_HOME/profiles/$PROFILE/SOUL.md"
