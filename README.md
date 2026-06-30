@@ -62,6 +62,8 @@ docker compose restart
 
 To use a different SOUL.md file, update `SOUL_PATH` in `.env` and restart.
 
+You can also edit `templates/MEMORY.md` and `templates/USER.md` to seed the Agent with memory and user profile that better fit your needs on first boot.
+
 ## Project Structure
 
 ```
