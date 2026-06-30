@@ -10,65 +10,58 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+confirm_step() {
+    local desc="$1"
+    echo ""
+    echo -e "${BOLD}[?] ${desc}${NC}"
+    read -p "  执行? [y/N]: " val
+    case "$val" in
+        y|Y|yes) return 0 ;;
+        *) echo -e "  ${YELLOW}跳过${NC}"; return 1 ;;
+    esac
+}
+
 echo "============================================"
 echo "  Hermes Single-Agent 清理脚本"
 echo "============================================"
 echo ""
-echo -e "${RED}${BOLD}⚠  此操作将删除以下内容：${NC}"
-echo "  • Hermes 容器和镜像"
-echo "  • hermes-data 数据卷（包含聊天记录、配置、skill）"
-echo "  • mcp-net Docker 网络"
-echo "  • SSH 密钥（id_hermes-single）和 authorized_keys 条目"
-echo "  • .env 配置文件"
+echo -e "${RED}${BOLD}⚠  可逐项选择需要清理的内容${NC}"
 echo ""
-
-read -p "确认清理? [y/N]: " confirm
-case "$confirm" in
-    y|Y|yes)
-        ;;
-    *)
-        echo -e "  ${YELLOW}已取消${NC}"
-        exit 0
-        ;;
-esac
 
 # ── 停止并删除容器 ──
-echo ""
-echo -e "${BOLD}[1/6] 停止并删除容器...${NC}"
-if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
-    cd "$SCRIPT_DIR" && docker compose down -v 2>/dev/null || true
-    echo -e "  ${GREEN}✓ 容器已删除${NC}"
-else
-    echo -e "  ${YELLOW}⚠ docker-compose.yml 不存在，跳过${NC}"
+if confirm_step "停止并删除 Hermes 容器 (docker compose down -v)"; then
+    if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+        cd "$SCRIPT_DIR" && docker compose down -v 2>/dev/null || true
+        echo -e "  ${GREEN}✓ 容器已删除${NC}"
+    else
+        echo -e "  ${YELLOW}⚠ docker-compose.yml 不存在${NC}"
+    fi
 fi
 
-# ── 停止并删除 Playwright MCP 容器（如果有子模块） ──
-echo ""
-echo -e "${BOLD}[2/6] 停止并删除 Playwright MCP 容器...${NC}"
-PLAYWRIGHT_DIR="$SCRIPT_DIR/playwright"
-if [ -f "$PLAYWRIGHT_DIR/docker-compose.yml" ]; then
-    cd "$PLAYWRIGHT_DIR" && docker compose down -v 2>/dev/null || true
-    echo -e "  ${GREEN}✓ Playwright MCP 已删除${NC}"
-else
-    echo -e "  ${YELLOW}⚠ playwright 子仓库不存在或已清理，跳过${NC}"
+# ── 停止并删除 Playwright MCP 容器 ──
+if confirm_step "停止并删除 Playwright MCP 容器 (如果有子模块)"; then
+    PLAYWRIGHT_DIR="$SCRIPT_DIR/playwright"
+    if [ -f "$PLAYWRIGHT_DIR/docker-compose.yml" ]; then
+        cd "$PLAYWRIGHT_DIR" && docker compose down -v 2>/dev/null || true
+        echo -e "  ${GREEN}✓ Playwright MCP 已删除${NC}"
+    else
+        echo -e "  ${YELLOW}⚠ playwright 子仓库不存在或已清理${NC}"
+    fi
 fi
 
 # ── 删除 mcp-net 网络 ──
-echo ""
-echo -e "${BOLD}[3/6] 删除 mcp-net 网络...${NC}"
-if docker network inspect mcp-net >/dev/null 2>&1; then
-    docker network rm mcp-net 2>/dev/null || true
-    echo -e "  ${GREEN}✓ mcp-net 已删除${NC}"
-else
-    echo -e "  ${YELLOW}⚠ mcp-net 不存在，跳过${NC}"
+if confirm_step "删除 mcp-net Docker 网络"; then
+    if docker network inspect mcp-net >/dev/null 2>&1; then
+        docker network rm mcp-net 2>/dev/null || true
+        echo -e "  ${GREEN}✓ mcp-net 已删除${NC}"
+    else
+        echo -e "  ${YELLOW}⚠ mcp-net 不存在${NC}"
+    fi
 fi
 
 # ── 删除 SSH 密钥 ──
-echo ""
-echo -e "${BOLD}[4/6] 清理 SSH 密钥...${NC}"
 SSH_KEY="$HOME/.ssh/id_hermes-single"
-if [ -f "$SSH_KEY" ]; then
-    # 从 authorized_keys 中移除公钥
+if [ -f "$SSH_KEY" ] && confirm_step "清理 SSH 密钥 (id_hermes-single)"; then
     PUB_KEY="${SSH_KEY}.pub"
     if [ -f "$PUB_KEY" ] && [ -f "$HOME/.ssh/authorized_keys" ]; then
         grep -vFf "$PUB_KEY" "$HOME/.ssh/authorized_keys" > /tmp/authorized_keys_tmp 2>/dev/null || true
@@ -78,28 +71,22 @@ if [ -f "$SSH_KEY" ]; then
     fi
     rm -f "$SSH_KEY" "${SSH_KEY}.pub"
     echo -e "  ${GREEN}✓ SSH 密钥已删除${NC}"
-else
-    echo -e "  ${YELLOW}⚠ SSH 密钥不存在，跳过${NC}"
 fi
 
 # ── 删除 .env ──
-echo ""
-echo -e "${BOLD}[5/6] 删除配置文件...${NC}"
-if [ -f "$ENV_FILE" ]; then
+if [ -f "$ENV_FILE" ] && confirm_step "删除 .env 配置文件"; then
     rm -f "$ENV_FILE"
     echo -e "  ${GREEN}✓ .env 已删除${NC}"
-else
-    echo -e "  ${YELLOW}⚠ .env 不存在，跳过${NC}"
 fi
 
 # ── 删除 hermes-data volume ──
-echo ""
-echo -e "${BOLD}[6/6] 删除数据卷...${NC}"
-if docker volume inspect hermes-data >/dev/null 2>&1; then
-    docker volume rm hermes-data 2>/dev/null || true
-    echo -e "  ${GREEN}✓ hermes-data 数据卷已删除${NC}"
-else
-    echo -e "  ${YELLOW}⚠ hermes-data 不存在，跳过${NC}"
+if confirm_step "删除 hermes-data 数据卷（包含聊天记录、配置、skill）"; then
+    if docker volume inspect hermes-data >/dev/null 2>&1; then
+        docker volume rm hermes-data 2>/dev/null || true
+        echo -e "  ${GREEN}✓ hermes-data 数据卷已删除${NC}"
+    else
+        echo -e "  ${YELLOW}⚠ hermes-data 不存在${NC}"
+    fi
 fi
 
 echo ""
