@@ -165,6 +165,8 @@ prompt_playwright_mcp() {
         y|Y|yes)
             MCP_PLAYWRIGHT_ENABLED=true
             echo -e "  ${GREEN}✓ 将自动部署 Playwright MCP${NC}"
+            # ── VPN 代理配置 ──
+            prompt_playwright_proxy
             ;;
         n|N|no)
             MCP_PLAYWRIGHT_ENABLED=false
@@ -174,6 +176,41 @@ prompt_playwright_mcp() {
         *)
             MCP_PLAYWRIGHT_ENABLED="${cur}"
             echo -e "  ${GREEN}✓ 保持当前设置${NC}"
+            ;;
+    esac
+}
+
+prompt_playwright_proxy() {
+    echo ""
+    echo -e "  ${BOLD}[7a] VPN 代理${NC}"
+    echo -e "  ${DIM}代理让 Chrome 能访问被墙的网站（如 Google）。${NC}"
+    local cur_proxy="${PROXY_ENABLED:-false}"
+    local label="不使用"
+    [ "$cur_proxy" = "true" ] && label="使用"
+    read -p "  使用代理? [y/N] (当前: $label): " sub_val
+    case "$sub_val" in
+        y|Y|yes)
+            PROXY_ENABLED=true
+            # 检测宿主机 IP
+            local auto_ip=""
+            if is_wsl; then
+                auto_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+                echo -e "    ${DIM}检测到 WSL 环境${NC}"
+            else
+                auto_ip=$(ip route get 1 2>/dev/null | grep -oP 'src \K\S+')
+                [ -z "$auto_ip" ] && auto_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+            fi
+            local cur_ip="${PROXY_HOST:-$auto_ip}"
+            read -p "  宿主机 IP (检测到: $cur_ip): " ip_val
+            PROXY_HOST="${ip_val:-$cur_ip}"
+            local cur_port="${PROXY_PORT:-7890}"
+            read -p "  端口 (默认: $cur_port): " port_val
+            PROXY_PORT="${port_val:-$cur_port}"
+            echo -e "  ${GREEN}✓ 代理: http://${PROXY_HOST}:${PROXY_PORT}${NC}"
+            ;;
+        *)
+            PROXY_ENABLED=false
+            echo -e "  ${YELLOW}跳过代理${NC}"
             ;;
     esac
 }
@@ -309,7 +346,7 @@ write_env() {
     echo -e "${BOLD}[11] 写入配置${NC}"
     local old_extra=""
     if [ -f "$ENV_FILE" ]; then
-        old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=|MEMORY_TOOL_ENABLED=|DISABLED_TOOLSETS=|MEMORY_NUDGE_INTERVAL=|SKILL_NUDGE_INTERVAL=|TOOL_PROGRESS=|MCP_PLAYWRIGHT_ENABLED=)" "$ENV_FILE" 2>/dev/null || true)
+        old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=|MEMORY_TOOL_ENABLED=|DISABLED_TOOLSETS=|MEMORY_NUDGE_INTERVAL=|SKILL_NUDGE_INTERVAL=|TOOL_PROGRESS=|MCP_PLAYWRIGHT_ENABLED=|PROXY_ENABLED=|PROXY_HOST=|PROXY_PORT=)" "$ENV_FILE" 2>/dev/null || true)
     fi
 
     # 自动生成 API_SERVER_KEY
@@ -329,6 +366,9 @@ MEMORY_NUDGE_INTERVAL=${MEMORY_NUDGE_INTERVAL:-10}
 SKILL_NUDGE_INTERVAL=${SKILL_NUDGE_INTERVAL:-10}
 TOOL_PROGRESS=${TOOL_PROGRESS:-all}
 MCP_PLAYWRIGHT_ENABLED=${MCP_PLAYWRIGHT_ENABLED:-false}
+PROXY_ENABLED=${PROXY_ENABLED:-false}
+PROXY_HOST=${PROXY_HOST:-}
+PROXY_PORT=${PROXY_PORT:-7890}
 EOF
     if [ -n "$old_extra" ]; then
         echo "" >> "$ENV_FILE"
@@ -349,6 +389,12 @@ start_container() {
         if [ -f "$SCRIPT_DIR/playwright/docker-compose.yml" ]; then
             if ! docker ps --format '{{.Names}}' | grep -q '^playwright-mcp$' 2>/dev/null; then
                 echo "  启动 Playwright MCP..."
+                # 生成 playwright 的 .env（代理配置）
+                if [ "${PROXY_ENABLED:-false}" = "true" ] && [ -n "$PROXY_HOST" ]; then
+                    cat > "$SCRIPT_DIR/playwright/.env" << PROXYEOF
+PROXY_URL=http://${PROXY_HOST}:${PROXY_PORT:-7890}
+PROXYEOF
+                fi
                 (cd "$SCRIPT_DIR/playwright" && docker compose up -d)
                 echo -e "  ${GREEN}✓ Playwright MCP 已启动${NC}"
             else
