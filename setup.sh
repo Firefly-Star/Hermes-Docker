@@ -148,8 +148,8 @@ prompt_playwright_mcp() {
     echo ""
     echo -e "${BOLD}[7] 容器化 Playwright MCP 服务器${NC}"
     echo -e "  ${DIM}通过 Docker 部署 Playwright MCP 浏览器，让 Agent 能打开网页、截图、交互。${NC}"
-    echo -e "  ${DIM}需要先 clone 子仓库：${NC}"
-    echo -e "  ${DIM}  git clone https://github.com/Firefly-Star/playwright-mcp-server-docker.git ~/playwright${NC}"
+    echo -e "  ${DIM}子仓库已在 ./playwright/ 目录下${NC}"
+    echo -e "  ${DIM}克隆时需加 --recurse-submodules，或之后运行 git submodule update --init${NC}"
     local cur="${MCP_PLAYWRIGHT_ENABLED:-false}"
     local label="不启用"
     [ "$cur" = "true" ] && label="启用"
@@ -334,17 +334,17 @@ start_container() {
     # 如果启用了 playwright，先确保它在运行
     if [ "${MCP_PLAYWRIGHT_ENABLED:-false}" = "true" ]; then
         echo "  检查 Playwright MCP 容器..."
-        if [ -d ~/playwright ]; then
+        if [ -f "$SCRIPT_DIR/playwright/docker-compose.yml" ]; then
             if ! docker ps --format '{{.Names}}' | grep -q '^playwright-mcp$' 2>/dev/null; then
                 echo "  启动 Playwright MCP..."
-                (cd ~/playwright && docker compose up -d)
+                (cd "$SCRIPT_DIR/playwright" && docker compose up -d)
                 echo -e "  ${GREEN}✓ Playwright MCP 已启动${NC}"
             else
                 echo -e "  ${GREEN}✓ Playwright MCP 已在运行${NC}"
             fi
         else
-            echo -e "  ${YELLOW}⚠ ~/playwright 目录不存在，跳过 Playwright MCP${NC}"
-            echo -e "  ${DIM}  请先 clone: git clone https://github.com/Firefly-Star/playwright-mcp-server-docker.git ~/playwright${NC}"
+            echo -e "  ${YELLOW}⚠ ./playwright 子仓库未初始化${NC}"
+            echo -e "  ${DIM}  请先运行: git submodule update --init${NC}"
         fi
     fi
     read -p "  现在启动? [Y/n]: " yn
