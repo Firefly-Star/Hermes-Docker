@@ -64,21 +64,7 @@ if [ ! -f "$MEMORY_MARKER" ]; then
     echo "=== Memory seeded with deployment context ==="
 fi
 
-# ── 写激活脚本到持久卷（/opt/data/ 一定可写） ──
-mkdir -p /opt/data/scripts
-cat > /opt/data/scripts/activate.sh << SCRIPT
-#!/bin/bash
-source /opt/hermes/.venv/bin/activate
-[ -f /home/hermes/.bashrc ] && source /home/hermes/.bashrc
-
-# 快捷命令：${PROFILE} chat  =  hermes -p ${PROFILE} chat
-${PROFILE}() {
-    hermes -p ${PROFILE} "\$@"
-}
-SCRIPT
-chmod +x /opt/data/scripts/activate.sh
-
-# 同时也写到 .bashrc，保证 docker exec -it hermes-single bash 也能用
+# hermes 用户快捷命令
 echo "" >> /home/hermes/.bashrc
 echo "# Hermes profile shortcut" >> /home/hermes/.bashrc
 echo "${PROFILE}() { hermes -p ${PROFILE} \"\$@\"; }" >> /home/hermes/.bashrc
