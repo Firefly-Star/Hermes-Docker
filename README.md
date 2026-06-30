@@ -67,7 +67,7 @@ To use a different SOUL.md file, update `SOUL_PATH` in `.env` and restart.
 ```
 .
 ├── setup.sh              # Interactive setup wizard (run this)
-├── init.sh               # Container entry point (mounted into container)
+├── custom-init.sh         # Container startup hook (cont-init.d, runs before system init)
 ├── docker-compose.yml    # Service definition
 ├── .env                  # Configuration (auto-generated, gitignored)
 ├── SOUL.md               # Agent personality definition (edit this)
@@ -83,7 +83,7 @@ To use a different SOUL.md file, update `SOUL_PATH` in `.env` and restart.
 ## How It Works
 
 1. `setup.sh` collects your config, writes `.env`, and starts the container via `docker compose up -d`
-2. The container runs `init.sh` on start, which renders config templates, creates the Hermes profile, starts the gateway, and keeps the container alive
+2. On container start, `custom-init.sh` runs (as a cont-init.d hook): renders config templates, creates the Hermes profile, and configures MCP conditionally
 3. After setup, you are `exec`'d into the container with the Hermes venv pre-activated
 4. Use `hermes -p <agent_name> ...` commands inside the container
 
