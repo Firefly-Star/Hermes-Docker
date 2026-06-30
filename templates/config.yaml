@@ -229,7 +229,7 @@ display:
       - context_pct
       - cwd
   copy_shortcut: auto
-  tool_progress: all
+  tool_progress: ${TOOL_PROGRESS}
   cleanup_progress: false
   background_process_notifications: all
 dashboard:
@@ -280,6 +280,7 @@ streaming:
 memory:
   memory_enabled: true
   user_profile_enabled: true
+  nudge_interval: ${MEMORY_NUDGE_INTERVAL}
 delegation:
   inherit_mcp_toolsets: true
   max_iterations: 50
@@ -292,6 +293,7 @@ skills:
   template_vars: true
   inline_shell: false
   inline_shell_timeout: 10
+  creation_nudge_interval: ${SKILL_NUDGE_INTERVAL}
 curator:
   enabled: true
   interval_hours: 168

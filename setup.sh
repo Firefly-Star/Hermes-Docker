@@ -111,7 +111,9 @@ prompt_memory_tool() {
         n|N|no)
             MEMORY_TOOL_ENABLED=false
             DISABLED_TOOLSETS="[memory]"
-            echo -e "  ${YELLOW}⚠ 已禁用 memory 写入工具${NC}"
+            MEMORY_NUDGE_INTERVAL=0
+            SKILL_NUDGE_INTERVAL=0
+            echo -e "  ${YELLOW}⚠ 已禁用 memory 写入工具，后台 review 也已关闭${NC}"
             ;;
         *)
             MEMORY_TOOL_ENABLED=true
@@ -121,10 +123,31 @@ prompt_memory_tool() {
     esac
 }
 
+prompt_tool_progress() {
+    echo ""
+    echo -e "${BOLD}[6] 工具调用显示模式${NC}"
+    echo -e "  ${DIM}all: 每次工具调用显示简短参数预览${NC}"
+    echo -e "  ${DIM}verbose: 每次工具调用显示完整参数 JSON${NC}"
+    local cur="${TOOL_PROGRESS:-all}"
+    local label="简短预览"
+    [ "$cur" = "verbose" ] && label="完整参数"
+    read -p "  显示完整参数? [y/N] (当前: $label): " val
+    case "$val" in
+        y|Y|yes)
+            TOOL_PROGRESS=verbose
+            echo -e "  ${GREEN}✓ 将显示完整参数${NC}"
+            ;;
+        *)
+            TOOL_PROGRESS=all
+            echo -e "  ${GREEN}✓ 使用简短预览${NC}"
+            ;;
+    esac
+}
+
 # ── SSH 服务安装与启动（兼容 WSL / 原生 Linux） ──
 setup_ssh_server() {
     echo ""
-    echo -e "${BOLD}[6] SSH 服务配置${NC}"
+    echo -e "${BOLD}[7] SSH 服务配置${NC}"
 
     if is_wsl; then
         echo -e "  ${DIM}检测到 WSL 环境${NC}"
@@ -188,7 +211,7 @@ setup_ssh_server() {
 # ── 检测宿主机 IP ──
 detect_ssh_host() {
     echo ""
-    echo -e "${BOLD}[7] 宿主机 IP 地址${NC}"
+    echo -e "${BOLD}[8] 宿主机 IP 地址${NC}"
     echo -e "  ${DIM}Agent 通过此地址 SSH 连接回宿主机执行命令。${NC}"
 
     local auto_ip=""
@@ -220,7 +243,7 @@ detect_ssh_host() {
 # ── 设置 SSH 密钥（id_hermes-single + authorized_keys） ──
 setup_ssh_key() {
     echo ""
-    echo -e "${BOLD}[8] SSH 密钥配置${NC}"
+    echo -e "${BOLD}[9] SSH 密钥配置${NC}"
     local key="$HOME/.ssh/id_hermes-single"
     mkdir -p "$HOME/.ssh"
     if [ ! -f "$key" ]; then
@@ -249,7 +272,7 @@ setup_ssh_key() {
 # ── 写入 .env ──
 write_env() {
     echo ""
-    echo -e "${BOLD}[9] 写入配置${NC}"
+    echo -e "${BOLD}[10] 写入配置${NC}"
     local old_extra=""
     if [ -f "$ENV_FILE" ]; then
         old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=|MEMORY_TOOL_ENABLED=|DISABLED_TOOLSETS=)" "$ENV_FILE" 2>/dev/null || true)
@@ -268,6 +291,9 @@ SSH_HOST=${SSH_HOST}
 SSH_USER=${SSH_USER}
 MEMORY_TOOL_ENABLED=${MEMORY_TOOL_ENABLED:-true}
 DISABLED_TOOLSETS=${DISABLED_TOOLSETS:-[]}
+MEMORY_NUDGE_INTERVAL=${MEMORY_NUDGE_INTERVAL:-10}
+SKILL_NUDGE_INTERVAL=${SKILL_NUDGE_INTERVAL:-10}
+TOOL_PROGRESS=${TOOL_PROGRESS:-all}
 EOF
     if [ -n "$old_extra" ]; then
         echo "" >> "$ENV_FILE"
@@ -279,7 +305,7 @@ EOF
 # ── 启动容器 ──
 start_container() {
     echo ""
-    echo -e "${BOLD}[10] 启动／重启容器${NC}"
+    echo -e "${BOLD}[11] 启动／重启容器${NC}"
     read -p "  现在启动? [Y/n]: " yn
     case "$yn" in
         n|N|no)
@@ -314,7 +340,7 @@ wait_container() {
 # ── 进入容器 ──
 enter_container() {
     echo ""
-    echo -e "${BOLD}[11] 进入容器${NC}"
+    echo -e "${BOLD}[12] 进入容器${NC}"
     if docker ps --format '{{.Names}}' | grep -q '^hermes-single$' 2>/dev/null; then
         # 容器正在运行，直接问要不要进
         read -p "  现在进入容器? [Y/n]: " yn
@@ -375,6 +401,7 @@ prompt_dk
 prompt_ssh_user
 prompt_soul
 prompt_memory_tool
+prompt_tool_progress
 setup_ssh_server
 detect_ssh_host
 setup_ssh_key
