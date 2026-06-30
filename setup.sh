@@ -162,8 +162,7 @@ prompt_playwright_mcp() {
         *)
             MCP_PLAYWRIGHT_ENABLED=false
             echo -e "  ${YELLOW}⚠ 跳过 Playwright MCP${NC}"
-            echo -e "  ${DIM}  仓库内含 playwright-mcp-server-docker 子仓库，需要时可自行配置${NC}"
-            echo -e "  ${DIM}  或重新运行 setup 选择启用${NC}"
+            echo -e "  ${DIM}  需要时可根据子仓库 README 自行配置，或重新运行 setup 选择启用${NC}"
             ;;
     esac
 }
