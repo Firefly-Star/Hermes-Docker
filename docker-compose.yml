@@ -6,7 +6,7 @@ services:
     stdin_open: true
     tty: true
     healthcheck:
-      test: ["CMD", "pgrep", "-f", "hermes.*gateway"]
+      test: ["CMD", "pgrep", "-f", "s6-supervise.*main-hermes"]
       interval: 30s
       timeout: 10s
       retries: 3
