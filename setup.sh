@@ -129,16 +129,18 @@ prompt_memory_tool() {
 prompt_tool_progress() {
     echo ""
     echo -e "${BOLD}[6] 工具调用显示模式${NC}"
-    echo -e "  ${DIM}all: 每次工具调用显示简短参数预览${NC}"
+    echo -e "  ${DIM}all:     每次工具调用显示简短参数预览${NC}"
     echo -e "  ${DIM}verbose: 每次工具调用显示完整参数 JSON${NC}"
+    echo -e "  ${DIM}选 y 还会开启 thinking block 显示${NC}"
     local cur="${TOOL_PROGRESS:-all}"
     local label="简短预览"
-    [ "$cur" = "verbose" ] && label="完整参数"
-    read -p "  显示完整参数? [y/N] (当前: $label): " val
+    [ "$cur" = "verbose" ] && label="完整参数 + reasoning"
+    read -p "  显示完整参数并开启 reasoning? [y/N] (当前: $label): " val
     case "$val" in
         y|Y|yes)
             TOOL_PROGRESS=verbose
-            echo -e "  ${GREEN}✓ 将显示完整参数${NC}"
+            SHOW_REASONING=true
+            echo -e "  ${GREEN}✓ 将显示完整参数，同时开启 reasoning 显示${NC}"
             ;;
         n|N|no)
             TOOL_PROGRESS=all
@@ -346,7 +348,7 @@ write_env() {
     echo -e "${BOLD}[11] 写入配置${NC}"
     local old_extra=""
     if [ -f "$ENV_FILE" ]; then
-        old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=|MEMORY_TOOL_ENABLED=|DISABLED_TOOLSETS=|MEMORY_NUDGE_INTERVAL=|SKILL_NUDGE_INTERVAL=|TOOL_PROGRESS=|MCP_PLAYWRIGHT_ENABLED=|PROXY_ENABLED=|PROXY_HOST=|PROXY_PORT=)" "$ENV_FILE" 2>/dev/null || true)
+        old_extra=$(grep -v -E "^(AGENT_NAME=|DEEPSEEK_API_KEY=|API_SERVER_KEY=|SOUL_PATH=|TERMINAL_ENV=|SSH_HOST=|SSH_USER=|MEMORY_TOOL_ENABLED=|DISABLED_TOOLSETS=|MEMORY_NUDGE_INTERVAL=|SKILL_NUDGE_INTERVAL=|TOOL_PROGRESS=|SHOW_REASONING=|MCP_PLAYWRIGHT_ENABLED=|PROXY_ENABLED=|PROXY_HOST=|PROXY_PORT=)" "$ENV_FILE" 2>/dev/null || true)
     fi
 
     # 自动生成 API_SERVER_KEY
@@ -365,6 +367,7 @@ DISABLED_TOOLSETS=${DISABLED_TOOLSETS:-[]}
 MEMORY_NUDGE_INTERVAL=${MEMORY_NUDGE_INTERVAL:-10}
 SKILL_NUDGE_INTERVAL=${SKILL_NUDGE_INTERVAL:-10}
 TOOL_PROGRESS=${TOOL_PROGRESS:-all}
+SHOW_REASONING=${SHOW_REASONING:-false}
 MCP_PLAYWRIGHT_ENABLED=${MCP_PLAYWRIGHT_ENABLED:-false}
 PROXY_ENABLED=${PROXY_ENABLED:-false}
 PROXY_HOST=${PROXY_HOST:-}
@@ -420,6 +423,9 @@ PROXYEOF
                 echo -e "  ${DIM}    cat ~/.ssh/id_hermes-single.pub >> ~/.ssh/authorized_keys${NC}"
                 return 1
             fi
+            # 渲染配置（宿主机 env 展开）
+            echo "  渲染配置..."
+            bash "$SCRIPT_DIR/render-config.sh" 2>/dev/null || echo -e "  ${YELLOW}⚠ render-config.sh 未找到，跳过${NC}"
             echo "  停止旧容器..."
             docker compose down 2>/dev/null || true
             echo "  启动新容器..."
