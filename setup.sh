@@ -301,7 +301,7 @@ start_container() {
 wait_container() {
     echo "  等待容器就绪..."
     for i in $(seq 1 30); do
-        if docker exec hermes-single test -f /opt/data/scripts/activate.sh 2>/dev/null; then
+        if docker exec hermes-single test -f /opt/data/.initialized 2>/dev/null; then
             echo -e "  ${GREEN}✓ 容器就绪${NC}"
             return 0
         fi
@@ -326,7 +326,7 @@ enter_container() {
             *)
                 wait_container || return 0
                 echo "  进入容器..."
-                docker exec -it hermes-single bash --rcfile /opt/data/scripts/activate.sh
+                docker exec -it hermes-single bash
                 ;;
         esac
     elif docker ps -a --format '{{.Names}}' | grep -q '^hermes-single$' 2>/dev/null; then
@@ -344,7 +344,7 @@ enter_container() {
                 docker start hermes-single
                 wait_container || return 0
                 echo "  进入容器..."
-                docker exec -it hermes-single bash --rcfile /opt/data/scripts/activate.sh
+                docker exec -it hermes-single bash
                 ;;
         esac
     else

@@ -4,7 +4,13 @@ services:
     container_name: hermes-single
     restart: unless-stopped
     entrypoint: ["bash", "-c"]
-    command: ["chown -R 10000:10000 /home/hermes/ 2>/dev/null || true; exec /usr/bin/tini -g -- /opt/hermes/docker/entrypoint.sh bash /opt/init.sh"]
+    command:
+      - >
+        chown -R 10000:10000 /home/hermes/ /opt/data/ 2>/dev/null || true;
+        grep -q "source /opt/hermes/.venv/bin/activate" /root/.bashrc 2>/dev/null ||
+        echo "source /opt/hermes/.venv/bin/activate" >> /root/.bashrc;
+        exec /usr/bin/tini -g --
+        /opt/hermes/docker/entrypoint.sh bash /opt/init.sh
     stdin_open: true
     tty: true
     environment:
@@ -24,13 +30,6 @@ services:
       - ~/.ssh/id_hermes-single:/home/hermes/.ssh/id_hermes-single:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
-  fix-perms:
-    image: alpine:latest
-    restart: "no"
-    user: root
-    volumes:
-      - hermes-data:/opt/data
-    command: chown -R 10000:10000 /opt/data
 
 volumes:
   hermes-data:
