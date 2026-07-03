@@ -64,7 +64,6 @@ SSH_KEY="$HOME/.ssh/id_hermes-single"
 if [ -f "$SSH_KEY" ] && confirm_step "清理 SSH 密钥 (id_hermes-single)"; then
     PUB_KEY="${SSH_KEY}.pub"
     if [ -f "$PUB_KEY" ] && [ -f "$HOME/.ssh/authorized_keys" ]; then
-        local tmp
         tmp=$(mktemp) || true
         if [ -n "$tmp" ]; then
             grep -vFf "$PUB_KEY" "$HOME/.ssh/authorized_keys" > "$tmp" && mv "$tmp" "$HOME/.ssh/authorized_keys" || rm -f "$tmp"

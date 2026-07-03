@@ -24,6 +24,7 @@ services:
       - hermes-data:/opt/data
       - ./custom-init.sh:/etc/cont-init.d/00-custom-init
       - ./templates:/opt/data/templates:ro
+      - ./lib:/opt/data/lib:ro
       - ${SOUL_PATH}:/opt/data/custom_SOUL.md:ro
       - ~/.ssh/id_hermes-single:/home/hermes/.ssh/id_hermes-single:ro
     extra_hosts:
