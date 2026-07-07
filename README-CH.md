@@ -1,6 +1,6 @@
 # Hermes Single-Agent — 单容器 Hermes 代理
 
-一个极简的 Docker 方案，运行单个 [Hermes agent](https://github.com/NousResearch/hermes-agent)，后端使用 **DeepSeek V4 Flash**。只需 Docker 环境和 DeepSeek API Key。
+一个极简的 Docker 方案，运行单个 [Hermes agent](https://github.com/NousResearch/hermes-agent)。setup 向导可配置 **DeepSeek V4 Flash** 或自定义 OpenAI-compatible LLM endpoint。
 
 ## 快速开始
 
@@ -28,7 +28,7 @@ hermes -p <agent_name> run <指令>   # 单条指令
   ```bash
   sudo apt update && sudo apt install -y openssh-server
   ```
-- **DeepSeek API Key** — 从 [platform.deepseek.com](https://platform.deepseek.com) 获取
+- **LLM API Key** — DeepSeek API Key（[platform.deepseek.com](https://platform.deepseek.com)）或自定义 OpenAI-compatible endpoint 的凭据
 
 ## 配置
 
@@ -36,7 +36,12 @@ hermes -p <agent_name> run <指令>   # 单条指令
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
-| `DEEPSEEK_API_KEY` | — | DeepSeek API 密钥（必填） |
+| `LLM_PROVIDER` | `deepseek` | Hermes model provider 名称 |
+| `LLM_MODEL` | `deepseek-v4-flash` | 选择的模型名 |
+| `LLM_BASE_URL` | `https://api.deepseek.com/v1` | OpenAI-compatible API base URL |
+| `LLM_API_KEY` | — | Hermes 使用的 API Key |
+| `DEEPSEEK_API_KEY` | — | 兼容保留的 DeepSeek API Key 副本 |
+| `CUSTOM_LLM_API_KEY` | — | 自定义 endpoint API Key 副本 |
 | `AGENT_NAME` | `kaguya` | Hermes profile / 代理名称 |
 | `SOUL_PATH` | — | SOUL.md 文件路径 |
 | `API_SERVER_KEY` | 自动生成 | 内部 API 网关密钥 |
@@ -67,7 +72,11 @@ docker compose restart
 
 ```
 .
-├── setup.sh              # 交互式配置向导（运行这个）
+├── setup.sh              # 交互式配置向导入口（运行这个）
+├── setup.d/              # setup.sh source 的配置模块
+│   ├── 00-common.sh      # 公共变量 / helper
+│   ├── 30-llm-provider.sh # LLM provider / model 选择
+│   └── ...               # 每个设置项独立一个文件
 ├── custom-init.sh         # 容器启动 hook（cont-init.d，优先于系统 init 执行）
 ├── docker-compose.yml    # 服务定义
 ├── .env                  # 配置（自动生成，已 gitignore）

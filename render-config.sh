@@ -13,6 +13,11 @@ if [ -f "$ENV_FILE" ]; then
     set +a
 fi
 
+: "${LLM_PROVIDER:=deepseek}"
+: "${LLM_MODEL:=deepseek-v4-flash}"
+: "${LLM_BASE_URL:=https://api.deepseek.com/v1}"
+: "${LLM_API_KEY:=${DEEPSEEK_API_KEY:-${CUSTOM_LLM_API_KEY:-}}}"
+
 # ── 渲染 ──
 echo "Rendering config from template..."
 python3 -c "

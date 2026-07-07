@@ -13,6 +13,12 @@ grep -q "source /opt/hermes/.venv/bin/activate" /root/.bashrc 2>/dev/null ||
 # ── 确保 profile 目录存在 ──
 mkdir -p "$HERMES_HOME/profiles/$PROFILE"
 
+: "${LLM_PROVIDER:=deepseek}"
+: "${LLM_MODEL:=deepseek-v4-flash}"
+: "${LLM_BASE_URL:=https://api.deepseek.com/v1}"
+: "${LLM_API_KEY:=${DEEPSEEK_API_KEY:-${CUSTOM_LLM_API_KEY:-}}}"
+export LLM_PROVIDER LLM_MODEL LLM_BASE_URL LLM_API_KEY
+
 # ── 渲染 profile config ──
 if [ -f "$HERMES_HOME/profiles/$PROFILE/config.rendered.yaml" ]; then
     # 宿主机预渲染版本优先

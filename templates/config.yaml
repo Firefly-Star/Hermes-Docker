@@ -1,9 +1,9 @@
 model:
-  provider: deepseek
-  default: deepseek-v4-flash
-  model: deepseek-v4-flash
-  api_key: ${DEEPSEEK_API_KEY}
-  base_url: https://api.deepseek.com/v1
+  provider: ${LLM_PROVIDER}
+  default: ${LLM_MODEL}
+  model: ${LLM_MODEL}
+  api_key: ${LLM_API_KEY}
+  base_url: ${LLM_BASE_URL}
 providers: {}
 fallback_providers: []
 credential_pool_strategies: {}
