@@ -3,7 +3,7 @@
 
 prompt_soul() {
     echo ""
-    echo -e "${BOLD}[4] SOUL.md 路径${NC}"
+    echo -e "${BOLD}[5] SOUL.md 路径${NC}"
     echo -e "  ${DIM}指向你的 SOUL.md 文件（Agent 人格定义）。${NC}"
     local cur="${SOUL_PATH:-./SOUL.md}"
     [ -n "$SOUL_PATH" ] && echo -e "  ${DIM}当前: $SOUL_PATH${NC}"

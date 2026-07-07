@@ -97,7 +97,7 @@ select_model_from_list() {
 
 prompt_llm_provider() {
     echo ""
-    echo -e "${BOLD}[2] LLM 提供方${NC}"
+    echo -e "${BOLD}[3] LLM 提供方${NC}"
     echo -e "  ${DIM}1) DeepSeek（默认 base_url: https://api.deepseek.com/v1，模型: deepseek-v4-flash）${NC}"
     echo -e "  ${DIM}2) 自定义 OpenAI-compatible LLM（填写 provider 名称、base url，并从 /models 选择模型）${NC}"
 

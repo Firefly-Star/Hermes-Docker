@@ -31,9 +31,10 @@ if [ -n "$MODEL_CONTEXT_LENGTH" ]; then
 else
     MODEL_CONTEXT_LENGTH_LINE=""
 fi
+: "${CONTAINER_NAME:=hermes}"
 # Backward compatibility with older .env files that only had provider-specific keys.
 : "${HERMES_MODEL_API_KEY:=${LLM_API_KEY:-${DEEPSEEK_API_KEY:-${CUSTOM_LLM_API_KEY:-}}}}"
-export LLM_PROVIDER LLM_MODEL LLM_BASE_URL MODEL_CONTEXT_LENGTH MODEL_CONTEXT_LENGTH_LINE COMPRESSION_ENABLED COMPRESSION_THRESHOLD HERMES_MODEL_API_KEY
+export CONTAINER_NAME LLM_PROVIDER LLM_MODEL LLM_BASE_URL MODEL_CONTEXT_LENGTH MODEL_CONTEXT_LENGTH_LINE COMPRESSION_ENABLED COMPRESSION_THRESHOLD HERMES_MODEL_API_KEY
 
 # ── 渲染 ──
 echo "Rendering config from template..."
@@ -70,12 +71,12 @@ else
 fi
 
 # ── cp 进容器 ──
-if docker ps --format '{{.Names}}' | grep -q '^hermes-single$' 2>/dev/null; then
+if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$" 2>/dev/null; then
     PROFILE="${AGENT_NAME:-kaguya}"
-    docker cp "$OUTPUT" "hermes-single:/opt/data/profiles/$PROFILE/config.rendered.yaml"
-    docker cp "$ENV_FILE" "hermes-single:/opt/data/profiles/$PROFILE/.env"
-    docker exec hermes-single chown "10000:10000" "/opt/data/profiles/$PROFILE/.env" "/opt/data/profiles/$PROFILE/config.rendered.yaml" 2>/dev/null || true
-    docker exec hermes-single chmod 600 "/opt/data/profiles/$PROFILE/.env" 2>/dev/null || true
+    docker cp "$OUTPUT" "${CONTAINER_NAME}:/opt/data/profiles/$PROFILE/config.rendered.yaml"
+    docker cp "$ENV_FILE" "${CONTAINER_NAME}:/opt/data/profiles/$PROFILE/.env"
+    docker exec "$CONTAINER_NAME" chown "10000:10000" "/opt/data/profiles/$PROFILE/.env" "/opt/data/profiles/$PROFILE/config.rendered.yaml" 2>/dev/null || true
+    docker exec "$CONTAINER_NAME" chmod 600 "/opt/data/profiles/$PROFILE/.env" 2>/dev/null || true
     echo "✓ Copied config and profile .env into container"
 else
     echo "⚠ Container not running, config saved to $OUTPUT only"

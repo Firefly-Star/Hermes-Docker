@@ -20,6 +20,7 @@ main() {
     trap 'kill $SUDO_PID 2>/dev/null; wait $SUDO_PID 2>/dev/null' EXIT INT TERM
 
     prompt_name
+    prompt_container_name
     prompt_llm_provider
     prompt_ssh_user
     prompt_soul

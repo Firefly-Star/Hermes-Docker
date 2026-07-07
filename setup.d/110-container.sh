@@ -2,9 +2,16 @@
 # This file is sourced by setup.sh. Do not execute setup flow at top level.
 
 # ── 启动容器 ──
+hermes_container_name() {
+    printf '%s' "${CONTAINER_NAME:-hermes}"
+}
+
+# ── 启动容器 ──
 start_container() {
     echo ""
-    echo -e "${BOLD}[12] 启动／重启容器${NC}"
+    echo -e "${BOLD}[15] 启动／重启容器${NC}"
+    local container
+    container="$(hermes_container_name)"
     # 确保 mcp 共享网络存在
     docker network inspect mcp-net >/dev/null 2>&1 || docker network create mcp-net
     # 如果启用了 playwright，先确保它在运行
@@ -60,8 +67,10 @@ PROXYEOF
 # ── 等待容器就绪 ──
 wait_container() {
     echo "  等待容器就绪..."
+    local container
+    container="$(hermes_container_name)"
     for i in $(seq 1 30); do
-        if docker exec hermes-single test -f /opt/data/.initialized 2>/dev/null; then
+        if docker exec "$container" test -f /opt/data/.initialized 2>/dev/null; then
             echo -e "  ${GREEN}✓ 容器就绪${NC}"
             return 0
         fi
@@ -74,8 +83,10 @@ wait_container() {
 # ── 进入容器 ──
 enter_container() {
     echo ""
-    echo -e "${BOLD}[13] 进入容器${NC}"
-    if docker ps --format '{{.Names}}' | grep -q '^hermes-single$' 2>/dev/null; then
+    echo -e "${BOLD}[16] 进入容器${NC}"
+    local container
+    container="$(hermes_container_name)"
+    if docker ps --format '{{.Names}}' | grep -q "^${container}$" 2>/dev/null; then
         # 容器正在运行，直接问要不要进
         read -p "  现在进入容器? [Y/n]: " yn
         case "$yn" in
@@ -86,12 +97,12 @@ enter_container() {
             *)
                 wait_container || return 0
                 echo "  进入容器..."
-                docker exec -it hermes-single bash
+                docker exec -it "$container" bash
                 ;;
         esac
-    elif docker ps -a --format '{{.Names}}' | grep -q '^hermes-single$' 2>/dev/null; then
+    elif docker ps -a --format '{{.Names}}' | grep -q "^${container}$" 2>/dev/null; then
         # 容器存在但未运行，问要不要启动再进
-        echo -e "  ${YELLOW}⚠ 容器 hermes-single 已存在但未运行${NC}"
+        echo -e "  ${YELLOW}⚠ 容器 $container 已存在但未运行${NC}"
         read -p "  启动并进入容器? [Y/n]: " yn
         case "$yn" in
             n|N|no)
@@ -101,15 +112,15 @@ enter_container() {
                 ;;
             *)
                 echo "  启动容器..."
-                docker start hermes-single
+                docker start "$container"
                 wait_container || return 0
                 echo "  进入容器..."
-                docker exec -it hermes-single bash
+                docker exec -it "$container" bash
                 ;;
         esac
     else
         # 容器完全不存在
-        echo -e "  ${YELLOW}⚠ 容器 hermes-single 不存在，请先运行 setup.sh 完成部署${NC}"
+        echo -e "  ${YELLOW}⚠ 容器 $container 不存在，请先运行 setup.sh 完成部署${NC}"
         echo "  部署完成后: bash exec.sh"
     fi
 }

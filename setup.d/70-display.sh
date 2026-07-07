@@ -3,7 +3,7 @@
 
 prompt_tool_progress() {
     echo ""
-    echo -e "${BOLD}[6] 工具调用显示模式${NC}"
+    echo -e "${BOLD}[7] 工具调用显示模式${NC}"
     echo -e "  ${DIM}all:     每次工具调用显示简短参数预览${NC}"
     echo -e "  ${DIM}verbose: 每次工具调用显示完整参数 JSON${NC}"
     echo -e "  ${DIM}选 y 还会开启 thinking block 显示${NC}"

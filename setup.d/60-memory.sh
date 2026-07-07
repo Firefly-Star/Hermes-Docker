@@ -3,7 +3,7 @@
 
 prompt_memory_tool() {
     echo ""
-    echo -e "${BOLD}[5] Memory 写入工具${NC}"
+    echo -e "${BOLD}[6] Memory 写入工具${NC}"
     echo -e "  ${DIM}禁用后 Agent 无法自动保存 memory，但能继续读取已有的 memory 和 user 数据。${NC}"
     echo -e "  ${DIM}适合不希望 memory 被覆盖的场景。${NC}"
     local cur="${MEMORY_TOOL_ENABLED:-true}"

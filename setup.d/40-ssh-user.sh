@@ -3,7 +3,7 @@
 
 prompt_ssh_user() {
     echo ""
-    echo -e "${BOLD}[3] 宿主机 SSH 用户${NC}"
+    echo -e "${BOLD}[4] 宿主机 SSH 用户${NC}"
     echo -e "  ${DIM}Agent 将通过 SSH 连接到宿主机执行命令。${NC}"
     local cur="${SSH_USER:-$USER}"
     read -p "  用户名 (默认: $cur): " val

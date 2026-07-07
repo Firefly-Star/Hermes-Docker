@@ -51,6 +51,7 @@ Hermes 会在 profile 启动时加载 `/opt/data/profiles/<agent>/.env`。`confi
 | `COMPRESSION_ENABLED` | `true` | 是否启用 Hermes 自动上下文压缩 |
 | `COMPRESSION_THRESHOLD` | `0.85` | 自动压缩触发比例；128k 上下文约 109k token 时触发 |
 | `AGENT_NAME` | `kaguya` | Hermes profile / 代理名称 |
+| `CONTAINER_NAME` | `hermes` | Docker 容器名称；setup 会同步生成 `docker-compose.override.yml` 固定该名称 |
 | `SOUL_PATH` | — | SOUL.md 文件路径 |
 
 Secrets：

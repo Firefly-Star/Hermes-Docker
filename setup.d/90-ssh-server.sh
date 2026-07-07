@@ -4,7 +4,7 @@
 # ── SSH 服务安装与启动（兼容 WSL / 原生 Linux） ──
 setup_ssh_server() {
     echo ""
-    echo -e "${BOLD}[8] SSH 服务配置${NC}"
+    echo -e "${BOLD}[11] SSH 服务配置${NC}"
 
     if is_wsl; then
         echo -e "  ${DIM}检测到 WSL 环境${NC}"
@@ -68,7 +68,7 @@ setup_ssh_server() {
 # ── 检测宿主机 IP ──
 detect_ssh_host() {
     echo ""
-    echo -e "${BOLD}[9] 宿主机 IP 地址${NC}"
+    echo -e "${BOLD}[12] 宿主机 IP 地址${NC}"
     echo -e "  ${DIM}Agent 通过此地址 SSH 连接回宿主机执行命令。${NC}"
 
     local auto_ip=""
@@ -100,7 +100,7 @@ detect_ssh_host() {
 # ── 设置 SSH 密钥（id_hermes-single + authorized_keys） ──
 setup_ssh_key() {
     echo ""
-    echo -e "${BOLD}[10] SSH 密钥配置${NC}"
+    echo -e "${BOLD}[13] SSH 密钥配置${NC}"
     local key="$HOME/.ssh/id_hermes-single"
     mkdir -p "$HOME/.ssh"
     if [ ! -f "$key" ]; then

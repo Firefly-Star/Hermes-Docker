@@ -26,6 +26,7 @@ def common_exports(env_file, state_file, soul):
         ENV_FILE={env_file!s}
         STATE_FILE={state_file!s}
         AGENT_NAME=kaguya
+        CONTAINER_NAME=hermes
         SOUL_PATH={soul!s}
         SSH_HOST=127.0.0.1
         SSH_USER=tester
@@ -69,10 +70,12 @@ INPUT
     assert "DEEPSEEK_API_KEY=sk-deepseek" in secrets
     assert "API_SERVER_KEY=fixed" in secrets
     assert "LLM_PROVIDER=" not in secrets
+    assert "CONTAINER_NAME=" not in secrets
     assert "LLM_MODEL=" not in secrets
     assert "LLM_BASE_URL=" not in secrets
 
     assert "LLM_PROVIDER=deepseek" in state
+    assert "CONTAINER_NAME=hermes" in state
     assert "LLM_MODEL=deepseek-v4-flash" in state
     assert "LLM_BASE_URL=https://api.deepseek.com/v1" in state
     assert "COMPRESSION_ENABLED=true" in state
@@ -143,6 +146,7 @@ INPUT
     assert "HERMES_MODEL_API_KEY=sk-custom" in secrets
     assert "CUSTOM_LLM_API_KEY=sk-custom" in secrets
     assert "LLM_PROVIDER=" not in secrets
+    assert "CONTAINER_NAME=" not in secrets
     assert "LLM_MODEL=" not in secrets
     assert "LLM_BASE_URL=" not in secrets
 
@@ -184,6 +188,37 @@ INPUT
     assert "MODEL_CONTEXT_LENGTH=131072" in state
     assert "COMPRESSION_THRESHOLD=" not in secrets
     assert "MODEL_CONTEXT_LENGTH=" not in secrets
+
+
+def test_prompt_container_name_writes_state_and_compose_override(tmp_path):
+    env_file = tmp_path / ".env"
+    state_file = tmp_path / ".setup-state.env"
+    soul = tmp_path / "SOUL.md"
+    soul.write_text("soul", encoding="utf-8")
+    override = ROOT / "docker-compose.override.yml"
+    if override.exists():
+        override.unlink()
+
+    result = run_bash(
+        f'''
+        set -e
+        {common_exports(env_file, state_file, soul)}
+        prompt_container_name <<'INPUT'
+my-hermes
+INPUT
+        HERMES_MODEL_API_KEY=sk-test
+        write_env
+        ''',
+    )
+
+    assert result.returncode == 0, result.stderr + result.stdout
+    state = state_file.read_text(encoding="utf-8")
+    secrets = env_file.read_text(encoding="utf-8")
+    override_text = override.read_text(encoding="utf-8")
+    assert "CONTAINER_NAME=my-hermes" in state
+    assert "CONTAINER_NAME=" not in secrets
+    assert "container_name: my-hermes" in override_text
+    override.unlink()
 
 
 def test_rendered_config_keeps_api_key_as_env_reference_and_context_length_optional(tmp_path):

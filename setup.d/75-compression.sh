@@ -3,7 +3,7 @@
 
 prompt_compression() {
     echo ""
-    echo -e "${BOLD}[7] 自动上下文压缩${NC}"
+    echo -e "${BOLD}[8] 自动上下文压缩${NC}"
     echo -e "  ${DIM}Hermes 的 compression.threshold 是上下文使用比例。${NC}"
     echo -e "  ${DIM}默认 0.85 表示约 85% 时压缩；128k 上下文约 109k token。${NC}"
 
@@ -52,7 +52,7 @@ PY
 
 prompt_model_context_length() {
     echo ""
-    echo -e "${BOLD}[8] 模型 context length 覆盖${NC}"
+    echo -e "${BOLD}[9] 模型 context length 覆盖${NC}"
     echo -e "  ${DIM}留空则 config.yaml 不写 model.context_length，让 Hermes 自己探测/判断。${NC}"
     local cur="${MODEL_CONTEXT_LENGTH:-}"
     local cur_label="未设置"

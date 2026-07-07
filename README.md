@@ -51,6 +51,7 @@ Normal settings:
 | `COMPRESSION_ENABLED` | `true` | Whether Hermes automatic context compression is enabled |
 | `COMPRESSION_THRESHOLD` | `0.85` | Auto-compression trigger ratio; about 109k tokens on a 128k context model |
 | `AGENT_NAME` | `kaguya` | Hermes profile / agent name |
+| `CONTAINER_NAME` | `hermes` | Docker container name; setup also writes `docker-compose.override.yml` to pin it |
 | `SOUL_PATH` | — | Path to SOUL.md |
 
 Secrets:
