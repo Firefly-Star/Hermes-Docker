@@ -3,7 +3,7 @@
 
 prompt_playwright_mcp() {
     echo ""
-    echo -e "${BOLD}[7] 容器化 Playwright MCP 服务器${NC}"
+    echo -e "${BOLD}[9] 容器化 Playwright MCP 服务器${NC}"
     echo -e "  ${DIM}通过 Docker 部署 Playwright MCP 浏览器，让 Agent 能打开网页、截图、交互。${NC}"
     echo -e "  ${DIM}子仓库已在 ./playwright/ 目录下${NC}"
     echo -e "  ${DIM}克隆时需加 --recurse-submodules，或之后运行 git submodule update --init${NC}"
@@ -32,7 +32,7 @@ prompt_playwright_mcp() {
 
 prompt_playwright_proxy() {
     echo ""
-    echo -e "  ${BOLD}[7a] VPN 代理${NC}"
+    echo -e "  ${BOLD}[9a] VPN 代理${NC}"
     echo -e "  ${DIM}代理让 Chrome 能访问被墙的网站（如 Google）。${NC}"
     local cur_proxy="${PROXY_ENABLED:-false}"
     local label="不使用"

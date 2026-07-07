@@ -18,7 +18,15 @@ mkdir -p "$PROFILE_DIR"
 : "${LLM_MODEL:=deepseek-v4-flash}"
 : "${LLM_BASE_URL:=https://api.deepseek.com/v1}"
 : "${HERMES_MODEL_API_KEY:=${LLM_API_KEY:-${DEEPSEEK_API_KEY:-${CUSTOM_LLM_API_KEY:-}}}}"
-export LLM_PROVIDER LLM_MODEL LLM_BASE_URL HERMES_MODEL_API_KEY
+: "${MODEL_CONTEXT_LENGTH:=}"
+: "${COMPRESSION_ENABLED:=true}"
+: "${COMPRESSION_THRESHOLD:=0.85}"
+if [ -n "$MODEL_CONTEXT_LENGTH" ]; then
+    MODEL_CONTEXT_LENGTH_LINE="  context_length: $MODEL_CONTEXT_LENGTH"
+else
+    MODEL_CONTEXT_LENGTH_LINE=""
+fi
+export LLM_PROVIDER LLM_MODEL LLM_BASE_URL MODEL_CONTEXT_LENGTH MODEL_CONTEXT_LENGTH_LINE COMPRESSION_ENABLED COMPRESSION_THRESHOLD HERMES_MODEL_API_KEY
 
 # ── 确保 profile .env 存在，Hermes 启动时会自动加载它 ──
 if [ ! -f "$PROFILE_DIR/.env" ]; then
@@ -48,6 +56,7 @@ with open(template, encoding="utf-8") as f:
     text = f.read()
 placeholder = "__HERMES_MODEL_API_KEY_REF__"
 text = text.replace("${HERMES_MODEL_API_KEY}", placeholder)
+text = text.replace("# ${MODEL_CONTEXT_LENGTH_LINE}", os.environ.get("MODEL_CONTEXT_LENGTH_LINE", ""))
 text = os.path.expandvars(text)
 text = text.replace(placeholder, "${HERMES_MODEL_API_KEY}")
 with open(output, "w", encoding="utf-8") as f:

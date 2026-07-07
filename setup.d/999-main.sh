@@ -25,6 +25,8 @@ main() {
     prompt_soul
     prompt_memory_tool
     prompt_tool_progress
+    prompt_compression
+    prompt_model_context_length
     prompt_playwright_mcp
     setup_ssh_server
     detect_ssh_host

@@ -47,6 +47,9 @@ Hermes 会在 profile 启动时加载 `/opt/data/profiles/<agent>/.env`。`confi
 | `CUSTOM_LLM_PROVIDER_NAME` | — | 自定义 endpoint 输入的显示名称；不作为 Hermes provider |
 | `LLM_MODEL` | `deepseek-v4-flash` | 选择的模型名 |
 | `LLM_BASE_URL` | `https://api.deepseek.com/v1` | OpenAI-compatible API base URL |
+| `MODEL_CONTEXT_LENGTH` | — | 可选的 `model.context_length` 覆盖；留空则不写入 config，让 Hermes 自动判断 |
+| `COMPRESSION_ENABLED` | `true` | 是否启用 Hermes 自动上下文压缩 |
+| `COMPRESSION_THRESHOLD` | `0.85` | 自动压缩触发比例；128k 上下文约 109k token 时触发 |
 | `AGENT_NAME` | `kaguya` | Hermes profile / 代理名称 |
 | `SOUL_PATH` | — | SOUL.md 文件路径 |
 
@@ -58,6 +61,12 @@ Secrets：
 | `DEEPSEEK_API_KEY` | DeepSeek API key 副本，兼容 Hermes/provider 检测 |
 | `CUSTOM_LLM_API_KEY` | 自定义 endpoint API key 副本 |
 | `API_SERVER_KEY` | 内部 API 网关密钥 |
+
+### 上下文压缩与 context length
+
+Hermes 支持通过 `compression.enabled` 开关自动上下文压缩，并通过 `compression.threshold` 设置触发比例。setup 默认启用自动压缩，并把阈值设为 `0.85`，避免 128k 上下文在约 64k token 时过早压缩。
+
+如果你的模型 context length 无法被 Hermes 正确识别，可以在 setup 中填写硬编码值，例如 `131072`。留空时不会写入 `model.context_length`，Hermes 会继续使用自己的探测/判断逻辑。
 
 ### 修改代理名称
 

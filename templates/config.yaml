@@ -4,6 +4,7 @@ model:
   model: ${LLM_MODEL}
   api_key: ${HERMES_MODEL_API_KEY}
   base_url: ${LLM_BASE_URL}
+# ${MODEL_CONTEXT_LENGTH_LINE}
 providers: {}
 fallback_providers: []
 credential_pool_strategies: {}
@@ -93,8 +94,8 @@ tool_loop_guardrails:
     same_tool_failure: 8
     idempotent_no_progress: 5
 compression:
-  enabled: true
-  threshold: 0.5
+  enabled: ${COMPRESSION_ENABLED}
+  threshold: ${COMPRESSION_THRESHOLD}
   target_ratio: 0.2
   protect_last_n: 20
   hygiene_hard_message_limit: 400

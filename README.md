@@ -47,6 +47,9 @@ Normal settings:
 | `CUSTOM_LLM_PROVIDER_NAME` | — | Display label entered for a custom endpoint; not used as the Hermes provider |
 | `LLM_MODEL` | `deepseek-v4-flash` | Selected model name |
 | `LLM_BASE_URL` | `https://api.deepseek.com/v1` | OpenAI-compatible API base URL |
+| `MODEL_CONTEXT_LENGTH` | — | Optional `model.context_length` override; blank means omit it and let Hermes detect the context length |
+| `COMPRESSION_ENABLED` | `true` | Whether Hermes automatic context compression is enabled |
+| `COMPRESSION_THRESHOLD` | `0.85` | Auto-compression trigger ratio; about 109k tokens on a 128k context model |
 | `AGENT_NAME` | `kaguya` | Hermes profile / agent name |
 | `SOUL_PATH` | — | Path to SOUL.md |
 
@@ -58,6 +61,12 @@ Secrets:
 | `DEEPSEEK_API_KEY` | DeepSeek API key copy for Hermes/provider detection compatibility |
 | `CUSTOM_LLM_API_KEY` | Custom endpoint API key copy |
 | `API_SERVER_KEY` | Internal API gateway key |
+
+### Context compression and context length
+
+Hermes supports automatic context compression via `compression.enabled` and uses `compression.threshold` as the trigger ratio. This setup enables auto-compression by default and sets the threshold to `0.85`, avoiding early compression around 64k tokens on 128k-context models.
+
+If Hermes cannot correctly detect your model's context length, enter an explicit value during setup, such as `131072`. Leaving it blank omits `model.context_length` from the rendered config and lets Hermes keep using its own detection logic.
 
 ### Agent Name
 
