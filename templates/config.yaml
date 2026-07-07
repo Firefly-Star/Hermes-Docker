@@ -2,7 +2,7 @@ model:
   provider: ${LLM_PROVIDER}
   default: ${LLM_MODEL}
   model: ${LLM_MODEL}
-  api_key: ${LLM_API_KEY}
+  api_key: ${HERMES_MODEL_API_KEY}
   base_url: ${LLM_BASE_URL}
 providers: {}
 fallback_providers: []

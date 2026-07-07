@@ -32,24 +32,36 @@ hermes -p <agent_name> run <指令>   # 单条指令
 
 ## 配置
 
-所有配置保存在 `.env` 中（`setup.sh` 自动生成）：
+`setup.sh` 会拆分生成两个 gitignored 文件：
+
+- `.setup-state.env`：普通、非敏感的上次选择，例如 provider、模型名、base URL、SSH 用户、SOUL 路径。
+- `.env`：Hermes/container 运行时需要的 secrets，例如 `HERMES_MODEL_API_KEY`、`DEEPSEEK_API_KEY`、`CUSTOM_LLM_API_KEY`、`API_SERVER_KEY`。
+
+Hermes 会在 profile 启动时加载 `/opt/data/profiles/<agent>/.env`。`config.yaml` 中只保留 `api_key: ${HERMES_MODEL_API_KEY}` 引用，由 Hermes 自己在运行时展开，避免把明文 API key 写入 config。
+
+普通配置：
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
-| `LLM_PROVIDER` | `deepseek` | Hermes model provider 名称 |
-| `CUSTOM_LLM_PROVIDER_NAME` | — | 自定义 endpoint 输入的显示名称；Hermes 实际仍使用 `LLM_PROVIDER=custom` |
+| `LLM_PROVIDER` | `deepseek` | Hermes model provider 名称；自定义 endpoint 固定为 `custom` |
+| `CUSTOM_LLM_PROVIDER_NAME` | — | 自定义 endpoint 输入的显示名称；不作为 Hermes provider |
 | `LLM_MODEL` | `deepseek-v4-flash` | 选择的模型名 |
 | `LLM_BASE_URL` | `https://api.deepseek.com/v1` | OpenAI-compatible API base URL |
-| `LLM_API_KEY` | — | Hermes 使用的 API Key |
-| `DEEPSEEK_API_KEY` | — | 兼容保留的 DeepSeek API Key 副本 |
-| `CUSTOM_LLM_API_KEY` | — | 自定义 endpoint API Key 副本 |
 | `AGENT_NAME` | `kaguya` | Hermes profile / 代理名称 |
 | `SOUL_PATH` | — | SOUL.md 文件路径 |
-| `API_SERVER_KEY` | 自动生成 | 内部 API 网关密钥 |
+
+Secrets：
+
+| 变量 | 说明 |
+|---|---|
+| `HERMES_MODEL_API_KEY` | `config.yaml` 引用的模型 API key |
+| `DEEPSEEK_API_KEY` | DeepSeek API key 副本，兼容 Hermes/provider 检测 |
+| `CUSTOM_LLM_API_KEY` | 自定义 endpoint API key 副本 |
+| `API_SERVER_KEY` | 内部 API 网关密钥 |
 
 ### 修改代理名称
 
-代理名称同时也是 Hermes 的 **profile 名称**。在 `.env` 中修改：
+代理名称同时也是 Hermes 的 **profile 名称**。在 `.setup-state.env` 中修改：
 
 ```
 AGENT_NAME=my-agent
@@ -65,7 +77,7 @@ AGENT_NAME=my-agent
 docker compose restart
 ```
 
-如果想用不同的 SOUL.md 文件，更新 `.env` 中的 `SOUL_PATH` 然后重启。
+如果想用不同的 SOUL.md 文件，更新 `.setup-state.env` 中的 `SOUL_PATH` 然后重启。
 
 你也可以修改 `templates/MEMORY.md` 和 `templates/USER.md`，让 Agent 在首次启动时自动加载更适合你的记忆和用户画像。
 
@@ -80,7 +92,8 @@ docker compose restart
 │   └── ...               # 每个设置项独立一个文件
 ├── custom-init.sh         # 容器启动 hook（cont-init.d，优先于系统 init 执行）
 ├── docker-compose.yml    # 服务定义
-├── .env                  # 配置（自动生成，已 gitignore）
+├── .setup-state.env      # 普通非敏感设置（自动生成，已 gitignore）
+├── .env                  # Secrets（自动生成，已 gitignore）
 ├── SOUL.md               # 代理人格定义（编辑这个）
 ├── templates/
 │   ├── config.yaml       # Hermes 配置模板（DeepSeek V4 Flash 预设）
@@ -93,7 +106,7 @@ docker compose restart
 
 ## 工作原理
 
-1. `setup.sh` 收集配置，写入 `.env`，然后 `docker compose up -d` 启动容器
+1. `setup.sh` 收集配置，把普通选项写入 `.setup-state.env`，把 secrets 写入 `.env`，然后 `docker compose up -d` 启动容器
 2. 容器启动时运行 `custom-init.sh`（作为 cont-init.d hook）：渲染配置模板、创建 Hermes profile、按需配置 MCP
 3. 配置完成后自动 `exec` 进入容器，Hermes 虚拟环境已预先激活
 4. 在容器内使用 `hermes -p <agent_name> ...` 命令
@@ -110,14 +123,14 @@ docker compose restart
 
 **常见问题：**
 
-**WSL 下检测到的 IP 连不上** — WSL `hostname -I` 拿到的是 WSL 虚拟网卡的地址（`172.x.x.x`），不是 Windows 宿主机的地址（`192.168.x.x`）。如果 SSH 连接失败，可以手动修改 `.env` 中的 `SSH_HOST` 为 Windows 宿主机的实际 IP。
+**WSL 下检测到的 IP 连不上** — WSL `hostname -I` 拿到的是 WSL 虚拟网卡的地址（`172.x.x.x`），不是 Windows 宿主机的地址（`192.168.x.x`）。如果 SSH 连接失败，可以手动修改 `.setup-state.env` 中的 `SSH_HOST` 为 Windows 宿主机的实际 IP。
 
 修改后重启容器：
 ```bash
 docker compose up -d
 ```
 
-**更换网络环境后 IP 变了** — 例如从办公室 WiFi 切换到家里网络。重新运行 `setup.sh` 会重新检测并更新 `SSH_HOST`；或手动编辑 `.env` 后重启容器即可。
+**更换网络环境后 IP 变了** — 例如从办公室 WiFi 切换到家里网络。重新运行 `setup.sh` 会重新检测并更新 `SSH_HOST`；或手动编辑 `.setup-state.env` 后重启容器即可。
 
 ## 协议
 

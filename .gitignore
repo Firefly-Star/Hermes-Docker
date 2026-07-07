@@ -1,4 +1,5 @@
 .env
+.setup-state.env
 config.rendered.yaml
 .claude/
 __pycache__/

@@ -9,12 +9,19 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 # ── 读取已有配置 ──
-load_env() {
-    if [ -f "$ENV_FILE" ]; then
+load_env_file() {
+    local file="$1"
+    if [ -f "$file" ]; then
         set -a
-        source "$ENV_FILE"
+        # shellcheck source=/dev/null
+        source "$file"
         set +a
     fi
+}
+
+load_env() {
+    load_env_file "$STATE_FILE"
+    load_env_file "$ENV_FILE"
 }
 load_env
 

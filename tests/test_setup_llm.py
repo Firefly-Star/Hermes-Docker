@@ -19,8 +19,9 @@ def run_bash(script: str, env=None):
     )
 
 
-def test_deepseek_llm_provider_writes_deepseek_config_to_env(tmp_path):
+def test_deepseek_llm_provider_splits_state_and_secret_env(tmp_path):
     env_file = tmp_path / ".env"
+    state_file = tmp_path / ".setup-state.env"
     soul = tmp_path / "SOUL.md"
     soul.write_text("soul", encoding="utf-8")
 
@@ -30,6 +31,7 @@ def test_deepseek_llm_provider_writes_deepseek_config_to_env(tmp_path):
         export HERMES_SINGLE_TEST_MODE=1
         source ./setup.sh
         ENV_FILE={env_file!s}
+        STATE_FILE={state_file!s}
         AGENT_NAME=kaguya
         SOUL_PATH={soul!s}
         SSH_HOST=127.0.0.1
@@ -51,15 +53,26 @@ INPUT
     )
 
     assert result.returncode == 0, result.stderr + result.stdout
-    content = env_file.read_text(encoding="utf-8")
-    assert "LLM_PROVIDER=deepseek" in content
-    assert "LLM_MODEL=deepseek-v4-flash" in content
-    assert "LLM_BASE_URL=https://api.deepseek.com/v1" in content
-    assert "DEEPSEEK_API_KEY=sk-deepseek" in content
+    secrets = env_file.read_text(encoding="utf-8")
+    state = state_file.read_text(encoding="utf-8")
+
+    assert "HERMES_MODEL_API_KEY=sk-deepseek" in secrets
+    assert "DEEPSEEK_API_KEY=sk-deepseek" in secrets
+    assert "API_SERVER_KEY=fixed" in secrets
+    assert "LLM_PROVIDER=" not in secrets
+    assert "LLM_MODEL=" not in secrets
+    assert "LLM_BASE_URL=" not in secrets
+
+    assert "LLM_PROVIDER=deepseek" in state
+    assert "LLM_MODEL=deepseek-v4-flash" in state
+    assert "LLM_BASE_URL=https://api.deepseek.com/v1" in state
+    assert "DEEPSEEK_API_KEY=" not in state
+    assert "HERMES_MODEL_API_KEY=" not in state
 
 
-def test_custom_llm_provider_fetches_models_and_writes_selection(tmp_path):
+def test_custom_llm_provider_fetches_models_and_splits_state_and_secret_env(tmp_path):
     env_file = tmp_path / ".env"
+    state_file = tmp_path / ".setup-state.env"
     soul = tmp_path / "SOUL.md"
     soul.write_text("soul", encoding="utf-8")
 
@@ -102,6 +115,7 @@ PY
         export HERMES_SINGLE_TEST_MODE=1
         source ./setup.sh
         ENV_FILE={env_file!s}
+        STATE_FILE={state_file!s}
         AGENT_NAME=kaguya
         SOUL_PATH={soul!s}
         SSH_HOST=127.0.0.1
@@ -126,9 +140,54 @@ INPUT
     )
 
     assert result.returncode == 0, result.stderr + result.stdout
-    content = env_file.read_text(encoding="utf-8")
-    assert "LLM_PROVIDER=custom" in content
-    assert "CUSTOM_LLM_PROVIDER_NAME=my-provider" in content
-    assert "LLM_MODEL=beta" in content
-    assert "LLM_BASE_URL=http://127.0.0.1:8765/v1" in content
-    assert "CUSTOM_LLM_API_KEY=sk-custom" in content
+    secrets = env_file.read_text(encoding="utf-8")
+    state = state_file.read_text(encoding="utf-8")
+
+    assert "HERMES_MODEL_API_KEY=sk-custom" in secrets
+    assert "CUSTOM_LLM_API_KEY=sk-custom" in secrets
+    assert "LLM_PROVIDER=" not in secrets
+    assert "LLM_MODEL=" not in secrets
+    assert "LLM_BASE_URL=" not in secrets
+
+    assert "LLM_PROVIDER=custom" in state
+    assert "CUSTOM_LLM_PROVIDER_NAME=my-provider" in state
+    assert "LLM_MODEL=beta" in state
+    assert "LLM_BASE_URL=http://127.0.0.1:8765/v1" in state
+    assert "CUSTOM_LLM_API_KEY=" not in state
+    assert "HERMES_MODEL_API_KEY=" not in state
+
+
+def test_rendered_config_keeps_api_key_as_env_reference(tmp_path):
+    env_file = tmp_path / ".env"
+    state_file = tmp_path / ".setup-state.env"
+    output = tmp_path / "config.rendered.yaml"
+    env_file.write_text("HERMES_MODEL_API_KEY=sk-secret\nDEEPSEEK_API_KEY=sk-secret\nAPI_SERVER_KEY=fixed\n", encoding="utf-8")
+    state_file.write_text(
+        "AGENT_NAME=kaguya\n"
+        "LLM_PROVIDER=deepseek\n"
+        "LLM_MODEL=deepseek-v4-flash\n"
+        "LLM_BASE_URL=https://api.deepseek.com/v1\n"
+        "TERMINAL_ENV=ssh\n"
+        "SSH_HOST=127.0.0.1\n"
+        "SSH_USER=tester\n"
+        "DISABLED_TOOLSETS=[]\n"
+        "MEMORY_NUDGE_INTERVAL=10\n"
+        "SKILL_NUDGE_INTERVAL=10\n"
+        "SHOW_REASONING=false\n",
+        encoding="utf-8",
+    )
+
+    result = run_bash(
+        f'''
+        set -e
+        ENV_FILE={env_file!s} STATE_FILE={state_file!s} OUTPUT={output!s} ./render-config.sh
+        ''',
+    )
+
+    assert result.returncode == 0, result.stderr + result.stdout
+    rendered = output.read_text(encoding="utf-8")
+    assert "provider: deepseek" in rendered
+    assert "default: deepseek-v4-flash" in rendered
+    assert "base_url: https://api.deepseek.com/v1" in rendered
+    assert "api_key: ${HERMES_MODEL_API_KEY}" in rendered
+    assert "sk-secret" not in rendered

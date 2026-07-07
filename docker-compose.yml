@@ -5,24 +5,15 @@ services:
     restart: unless-stopped
     stdin_open: true
     tty: true
+    env_file:
+      - path: .setup-state.env
+        required: false
+      - path: .env
+        required: false
     environment:
+      # Values from env_file are passed into the container. Keep only defaults
+      # that are safe for first-run/manual compose usage before setup generated files.
       - AGENT_NAME=${AGENT_NAME:-kaguya}
-      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
-      - CUSTOM_LLM_PROVIDER_NAME=${CUSTOM_LLM_PROVIDER_NAME:-}
-      - LLM_MODEL=${LLM_MODEL:-deepseek-v4-flash}
-      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com/v1}
-      - LLM_API_KEY=${LLM_API_KEY:-}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
-      - CUSTOM_LLM_API_KEY=${CUSTOM_LLM_API_KEY:-}
-      - API_SERVER_KEY=${API_SERVER_KEY:-}
-      - TERMINAL_ENV=${TERMINAL_ENV:-ssh}
-      - SSH_HOST=${SSH_HOST:-}
-      - SSH_USER=${SSH_USER:-}
-      - DISABLED_TOOLSETS=${DISABLED_TOOLSETS:-[]}
-      - MEMORY_NUDGE_INTERVAL=${MEMORY_NUDGE_INTERVAL:-10}
-      - SKILL_NUDGE_INTERVAL=${SKILL_NUDGE_INTERVAL:-10}
-      - TOOL_PROGRESS=${TOOL_PROGRESS:-all}
-      - MCP_PLAYWRIGHT_ENABLED=${MCP_PLAYWRIGHT_ENABLED:-false}
     networks:
       - default
       - mcp-net
