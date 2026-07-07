@@ -37,6 +37,7 @@ hermes -p <agent_name> run <指令>   # 单条指令
 | 变量 | 默认值 | 说明 |
 |---|---|---|
 | `LLM_PROVIDER` | `deepseek` | Hermes model provider 名称 |
+| `CUSTOM_LLM_PROVIDER_NAME` | — | 自定义 endpoint 输入的显示名称；Hermes 实际仍使用 `LLM_PROVIDER=custom` |
 | `LLM_MODEL` | `deepseek-v4-flash` | 选择的模型名 |
 | `LLM_BASE_URL` | `https://api.deepseek.com/v1` | OpenAI-compatible API base URL |
 | `LLM_API_KEY` | — | Hermes 使用的 API Key |

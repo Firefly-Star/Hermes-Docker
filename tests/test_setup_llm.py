@@ -127,7 +127,8 @@ INPUT
 
     assert result.returncode == 0, result.stderr + result.stdout
     content = env_file.read_text(encoding="utf-8")
-    assert "LLM_PROVIDER=my-provider" in content
+    assert "LLM_PROVIDER=custom" in content
+    assert "CUSTOM_LLM_PROVIDER_NAME=my-provider" in content
     assert "LLM_MODEL=beta" in content
     assert "LLM_BASE_URL=http://127.0.0.1:8765/v1" in content
     assert "CUSTOM_LLM_API_KEY=sk-custom" in content

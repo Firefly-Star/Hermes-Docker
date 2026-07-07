@@ -111,7 +111,8 @@ prompt_llm_provider() {
         case "$choice" in
             1)
                 LLM_PROVIDER=deepseek
-                LLM_MODEL="${LLM_MODEL:-deepseek-v4-flash}"
+                CUSTOM_LLM_PROVIDER_NAME=""
+                LLM_MODEL="deepseek-v4-flash"
                 LLM_BASE_URL="https://api.deepseek.com/v1"
                 while true; do
                     local cur="${LLM_API_KEY:-${DEEPSEEK_API_KEY:-}}"
@@ -135,9 +136,10 @@ prompt_llm_provider() {
             2)
                 while true; do
                     read -p "  提供方名称 (例如: openai-compatible): " val
-                    val="${val:-${LLM_PROVIDER:-}}"
+                    val="${val:-${CUSTOM_LLM_PROVIDER_NAME:-}}"
                     if [ -n "$val" ] && [[ "$val" =~ ^[A-Za-z0-9_.-]+$ ]]; then
-                        LLM_PROVIDER="$val"
+                        CUSTOM_LLM_PROVIDER_NAME="$val"
+                        LLM_PROVIDER=custom
                         break
                     fi
                     echo -e "  ${RED}⚠ 名称必填，只能包含字母、数字、_、-、.${NC}"
@@ -166,7 +168,7 @@ prompt_llm_provider() {
                 if ! LLM_MODEL="$(select_model_from_list "$models_text")"; then
                     continue
                 fi
-                echo -e "  ${GREEN}✓ $LLM_PROVIDER: $LLM_MODEL${NC}"
+                echo -e "  ${GREEN}✓ ${CUSTOM_LLM_PROVIDER_NAME} (custom): $LLM_MODEL${NC}"
                 break
                 ;;
             *)
