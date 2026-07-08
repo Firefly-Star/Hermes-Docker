@@ -1,5 +1,22 @@
 # Hermes Single-Agent — 单容器 Hermes 代理
 
+## 维护者入口 / 文档索引
+
+如果你是第一次接手这个仓库，建议按这个顺序阅读：
+
+1. `docs/MAINTAINER_OVERVIEW.md`
+   - 项目总览：这个项目是做什么的、已经做到哪里、先看哪些文件
+2. `docs/CURRENT_STATUS_AND_ROADMAP.md`
+   - 当前开发状态：最近修复了什么、还剩哪些明确待办、下一步推荐做什么
+3. `docs/MAINTENANCE_RUNBOOK.md`
+   - 日常维护手册：常用命令、如何跑测试、改哪类文件时该跑哪层测试
+4. `docs/testing-guide.md`
+   - 三层测试体系说明：setup.d 模块测试、运行时隔离容器测试、setup.sh 真 E2E
+5. `docs/provider-catalog-design.md`
+   - 多 provider setup 设计：后续如何把 provider 选择能力做成像 Hermes 一样的 catalog 驱动
+
+如果你只是普通使用者，可以直接继续看下方“快速开始”。
+
 一个极简的 Docker 方案，运行单个 [Hermes agent](https://github.com/NousResearch/hermes-agent)。setup 向导可配置 **DeepSeek V4 Flash** 或自定义 OpenAI-compatible LLM endpoint。
 
 ## 快速开始
