@@ -11,6 +11,12 @@ chown -R 10000:10000 /opt/data/ 2>/dev/null || true
 grep -q "source /opt/hermes/.venv/bin/activate" /root/.bashrc 2>/dev/null ||
   echo "source /opt/hermes/.venv/bin/activate" >> /root/.bashrc
 
+# 容器镜像内的 stage2 hook 会在 custom-init 之后运行，并在首次启动时用
+# /opt/data/config.yaml 作为 profile 默认配置来源。这里同步一份顶层 config，
+# 避免 stage2 在我们已经写好 profile/config.rendered.yaml 后，又把 profile
+# config.yaml 用镜像默认 deepseek 配置覆盖回去。
+TOP_LEVEL_CONFIG="$HERMES_HOME/config.yaml"
+
 # ── 确保 profile 目录存在 ──
 mkdir -p "$PROFILE_DIR"
 
@@ -41,10 +47,9 @@ EOF
 fi
 
 # ── 渲染 profile config ──
-if [ -f "$PROFILE_DIR/config.rendered.yaml" ]; then
-    # 宿主机预渲染版本优先
-    cp "$PROFILE_DIR/config.rendered.yaml" "$PROFILE_DIR/config.yaml"
-    echo "init: using pre-rendered config"
+if [ -f "$PROFILE_DIR/config.yaml" ]; then
+    cp "$PROFILE_DIR/config.yaml" "$TOP_LEVEL_CONFIG"
+    echo "init: using project-managed active config"
 elif [ -f "$TEMPLATES/config.yaml" ]; then
     # fallback: 容器内渲染。保留 ${HERMES_MODEL_API_KEY}，避免 config.yaml 落明文 key。
     python3 - "$TEMPLATES/config.yaml" "$PROFILE_DIR/config.yaml" <<'PY'
@@ -63,10 +68,14 @@ with open(output, "w", encoding="utf-8") as f:
     f.write(text)
 PY
     echo "init: rendered config from template"
+    cp "$PROFILE_DIR/config.yaml" "$TOP_LEVEL_CONFIG"
     # ── 追加 MCP 配置 ──
     . "$HERMES_HOME/lib/append-mcp.sh" "$PROFILE_DIR/config.yaml"
+    . "$HERMES_HOME/lib/append-mcp.sh" "$TOP_LEVEL_CONFIG"
 fi
+rm -f "$PROFILE_DIR/config.rendered.yaml" 2>/dev/null || true
 chown 10000:10000 "$PROFILE_DIR/config.yaml" 2>/dev/null || true
+chown 10000:10000 "$TOP_LEVEL_CONFIG" 2>/dev/null || true
 
 # ── 复制 MEMORY.md / USER.md 模板到 profile memories ──
 MEMORIES_DIR="$PROFILE_DIR/memories"
