@@ -6,6 +6,25 @@ hermes_container_name() {
     printf '%s' "${CONTAINER_NAME:-hermes}"
 }
 
+compose_cmd() {
+    local compose=(docker compose)
+    if [ -f "$STATE_FILE" ]; then
+        compose+=(--env-file "$STATE_FILE")
+    fi
+    if [ -f "$ENV_FILE" ]; then
+        compose+=(--env-file "$ENV_FILE")
+    fi
+    printf '%s\n' "${compose[@]}"
+}
+
+run_compose() {
+    local compose=()
+    while IFS= read -r line; do
+        [ -n "$line" ] && compose+=("$line")
+    done < <(compose_cmd)
+    "${compose[@]}" "$@"
+}
+
 # ── 启动容器 ──
 start_container() {
     echo ""
@@ -55,9 +74,32 @@ PROXYEOF
             echo "  渲染配置..."
             bash "$SCRIPT_DIR/render-config.sh" 2>/dev/null || echo -e "  ${YELLOW}⚠ render-config.sh 未找到，跳过${NC}"
             echo "  停止旧容器..."
-            docker compose down 2>/dev/null || true
+            run_compose down 2>/dev/null || true
             echo "  启动新容器..."
-            docker compose up -d
+            run_compose up -d
+            echo "  等待容器初始化..."
+            wait_container || return 1
+            if [ "${AGENT_NAME:-kaguya}" != "kaguya" ]; then
+                echo "  引导命名 profile: ${AGENT_NAME} ..."
+                docker exec "$container" sh -lc '
+                    set -e
+                    cd /opt/hermes
+                    . .venv/bin/activate
+                    if ! hermes profile show "'"${AGENT_NAME}"'" >/dev/null 2>&1; then
+                        hermes profile create "'"${AGENT_NAME}"'" --clone >/dev/null
+                    fi
+                '
+                docker cp "$SCRIPT_DIR/config.active.yaml" "$container:/opt/data/profiles/${AGENT_NAME}/config.yaml"
+                docker cp "$ENV_FILE" "$container:/opt/data/profiles/${AGENT_NAME}/.env"
+                docker exec "$container" sh -lc '
+                    set -e
+                    rm -f /opt/data/profiles/"'"${AGENT_NAME}"'"/config.rendered.yaml
+                    cp /opt/data/profiles/"'"${AGENT_NAME}"'"/config.yaml /opt/data/config.yaml
+                    chown -R 10000:10000 /opt/data/profiles/"'"${AGENT_NAME}"'" /opt/data/config.yaml 2>/dev/null || true
+                    chmod 600 /opt/data/profiles/"'"${AGENT_NAME}"'"/.env 2>/dev/null || true
+                '
+                echo "  ${GREEN}✓ 命名 profile 已引导完成${NC}"
+            fi
             echo -e "  ${GREEN}✓ 容器已启动${NC}"
             return 0
             ;;

@@ -112,6 +112,8 @@ prompt_llm_provider() {
             1)
                 LLM_PROVIDER=deepseek
                 CUSTOM_LLM_PROVIDER_NAME=""
+                LLM_PROVIDER_API_KEY_ENV="DEEPSEEK_API_KEY"
+                LLM_PROVIDER_BASE_URL_ENV="DEEPSEEK_BASE_URL"
                 LLM_MODEL="deepseek-v4-flash"
                 LLM_BASE_URL="https://api.deepseek.com/v1"
                 while true; do
@@ -140,6 +142,8 @@ prompt_llm_provider() {
                     if [ -n "$val" ] && [[ "$val" =~ ^[A-Za-z0-9_.-]+$ ]]; then
                         CUSTOM_LLM_PROVIDER_NAME="$val"
                         LLM_PROVIDER=custom
+                        LLM_PROVIDER_API_KEY_ENV="CUSTOM_LLM_API_KEY"
+                        LLM_PROVIDER_BASE_URL_ENV="CUSTOM_LLM_BASE_URL"
                         break
                     fi
                     echo -e "  ${RED}⚠ 名称必填，只能包含字母、数字、_、-、.${NC}"

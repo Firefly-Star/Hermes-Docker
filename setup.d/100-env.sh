@@ -20,13 +20,13 @@ write_env() {
     fi
 
     local provider="${LLM_PROVIDER:-deepseek}"
-    local api_key="${HERMES_MODEL_API_KEY:-${LLM_API_KEY:-}}"
+    local api_key="${LLM_API_KEY:-${HERMES_MODEL_API_KEY:-}}"
     case "$provider" in
         deepseek)
-            api_key="${api_key:-${DEEPSEEK_API_KEY:-}}"
+            api_key="${DEEPSEEK_API_KEY:-${api_key}}"
             ;;
         custom)
-            api_key="${api_key:-${CUSTOM_LLM_API_KEY:-}}"
+            api_key="${CUSTOM_LLM_API_KEY:-${api_key}}"
             ;;
     esac
 
