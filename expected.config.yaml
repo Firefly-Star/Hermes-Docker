@@ -1,10 +1,10 @@
 model:
-  provider: ${LLM_PROVIDER}
-  default: ${LLM_MODEL}
-  model: ${LLM_MODEL}
+  provider: custom
+  default: deepseek-v4-flash
+  model: deepseek-v4-flash
   api_key: ${HERMES_MODEL_API_KEY}
-  base_url: ${LLM_BASE_URL}
-# ${MODEL_CONTEXT_LENGTH_LINE}
+  base_url: https://api.gaoxin.net.cn/v1
+
 providers: {}
 fallback_providers: []
 credential_pool_strategies: {}
@@ -21,16 +21,16 @@ agent:
   gateway_notify_interval: 180
   gateway_auto_continue_freshness: 3600
   image_input_mode: auto
-  disabled_toolsets: ${DISABLED_TOOLSETS}
+  disabled_toolsets: []
   verbose: false
   reasoning_effort: medium
 terminal:
-  backend: ${TERMINAL_ENV}
+  backend: ssh
   modal_mode: auto
-  cwd: /home/${SSH_USER}
+  cwd: /home/wxz
   timeout: 180
-  ssh_host: ${SSH_HOST}
-  ssh_user: ${SSH_USER}
+  ssh_host: 172.24.29.222
+  ssh_user: wxz
   ssh_key: /home/hermes/.ssh/id_hermes-single
   env_passthrough: []
   shell_init_files: []
@@ -94,8 +94,8 @@ tool_loop_guardrails:
     same_tool_failure: 8
     idempotent_no_progress: 5
 compression:
-  enabled: ${COMPRESSION_ENABLED}
-  threshold: ${COMPRESSION_THRESHOLD}
+  enabled: true
+  threshold: 0.85
   target_ratio: 0.2
   protect_last_n: 20
   hygiene_hard_message_limit: 400
@@ -196,7 +196,7 @@ display:
   busy_input_mode: interrupt
   tui_auto_resume_recent: false
   bell_on_complete: false
-  show_reasoning: ${SHOW_REASONING}
+  show_reasoning: true
   streaming: true
   timestamps: false
   final_response_markdown: strip
@@ -223,7 +223,7 @@ display:
       - context_pct
       - cwd
   copy_shortcut: auto
-  tool_progress: ${TOOL_PROGRESS}
+  tool_progress: verbose
   cleanup_progress: false
   background_process_notifications: all
 dashboard:
@@ -274,7 +274,7 @@ streaming:
 memory:
   memory_enabled: true
   user_profile_enabled: true
-  nudge_interval: ${MEMORY_NUDGE_INTERVAL}
+  nudge_interval: 10
 delegation:
   inherit_mcp_toolsets: true
   max_iterations: 50
@@ -287,7 +287,7 @@ skills:
   template_vars: true
   inline_shell: false
   inline_shell_timeout: 10
-  creation_nudge_interval: ${SKILL_NUDGE_INTERVAL}
+  creation_nudge_interval: 10
 curator:
   enabled: true
   interval_hours: 168
@@ -308,3 +308,7 @@ model_catalog:
   providers: {}
 network:
   force_ipv4: false
+mcp_servers:
+  playwright:
+    url: "http://playwright-mcp:8931/mcp"
+    timeout: 120

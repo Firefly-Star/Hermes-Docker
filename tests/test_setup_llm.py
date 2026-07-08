@@ -55,8 +55,10 @@ def test_deepseek_llm_provider_splits_state_and_secret_env(tmp_path):
         set -e
         {common_exports(env_file, state_file, soul)}
         prompt_llm_provider <<'INPUT'
-1
+18
 sk-deepseek
+
+2
 INPUT
         write_env
         ''',
@@ -68,6 +70,7 @@ INPUT
 
     assert "HERMES_MODEL_API_KEY=sk-deepseek" in secrets
     assert "DEEPSEEK_API_KEY=sk-deepseek" in secrets
+    assert "LLM_PROVIDER_API_KEY_ENV=" not in secrets
     assert "API_SERVER_KEY=fixed" in secrets
     assert "LLM_PROVIDER=" not in secrets
     assert "CONTAINER_NAME=" not in secrets
@@ -75,6 +78,8 @@ INPUT
     assert "LLM_BASE_URL=" not in secrets
 
     assert "LLM_PROVIDER=deepseek" in state
+    assert "LLM_PROVIDER_API_KEY_ENV=DEEPSEEK_API_KEY" in state
+    assert "LLM_PROVIDER_BASE_URL_ENV=DEEPSEEK_BASE_URL" in state
     assert "CONTAINER_NAME=hermes" in state
     assert "LLM_MODEL=deepseek-v4-flash" in state
     assert "LLM_BASE_URL=https://api.deepseek.com/v1" in state
@@ -129,7 +134,7 @@ PY
         done
         {common_exports(env_file, state_file, soul)}
         prompt_llm_provider <<'INPUT'
-2
+37
 my-provider
 http://127.0.0.1:8765/v1
 sk-custom

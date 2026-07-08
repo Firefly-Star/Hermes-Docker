@@ -12,12 +12,13 @@ main() {
     check_deps
 
     # 预先缓存 sudo 凭证，避免后续安装 SSH 时中断流程
-    echo -e "${DIM}检查 sudo 权限...${NC}"
-    sudo -v
+    # 注释掉以避免交互阻塞，SSH 已配好不需要
+    # echo -e "${DIM}检查 sudo 权限...${NC}"
+    # sudo -v
     # 后台续期（脚本退出时自动结束）
-    (while true; do sudo -n true; sleep 60; done) 2>/dev/null &
-    SUDO_PID=$!
-    trap 'kill $SUDO_PID 2>/dev/null; wait $SUDO_PID 2>/dev/null' EXIT INT TERM
+    # (while true; do sudo -n true; sleep 60; done) 2>/dev/null &
+    # SUDO_PID=$!
+    # trap 'kill $SUDO_PID 2>/dev/null; wait $SUDO_PID 2>/dev/null' EXIT INT TERM
 
     prompt_name
     prompt_container_name
