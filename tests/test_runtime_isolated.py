@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEST_CONTAINER = "hermes-single-test-runtime"
 TEST_PROJECT = "hermes_single_test_runtime"
 TEST_PROFILE = "kaguya"
-TEST_KEY = "sk-test-runtime"
+TEST_KEY = "***"
 TEST_BASE_URL = "https://api.gaoxin.net.cn/v1"
 
 
@@ -172,6 +172,8 @@ def test_render_config_updates_active_top_level_and_removes_rendered_file(isolat
                 f"&& sed -n '1,10p' /opt/data/config.yaml "
                 f"&& echo ---env--- "
                 f"&& sed -n '1,10p' /opt/data/profiles/{TEST_PROFILE}/.env "
+                f"&& echo ---top-env--- "
+                f"&& sed -n '1,10p' /opt/data/.env "
                 f"&& echo ---rendered-exists--- "
                 f"&& if test -f /opt/data/profiles/{TEST_PROFILE}/config.rendered.yaml; then echo yes; else echo no; fi"
             ),
@@ -181,7 +183,8 @@ def test_render_config_updates_active_top_level_and_removes_rendered_file(isolat
     out = inspect.stdout
     active, rest = out.split("---top---", 1)
     top, rest = rest.split("---env---", 1)
-    env_text, rendered_exists = rest.split("---rendered-exists---", 1)
+    env_text, rest = rest.split("---top-env---", 1)
+    top_env_text, rendered_exists = rest.split("---rendered-exists---", 1)
 
     assert "provider: custom" in active
     assert "model: gpt-5.4" in active
@@ -191,6 +194,8 @@ def test_render_config_updates_active_top_level_and_removes_rendered_file(isolat
     assert f"base_url: {TEST_BASE_URL}" in top
     assert f"HERMES_MODEL_API_KEY={TEST_KEY}" in env_text
     assert f"CUSTOM_LLM_API_KEY={TEST_KEY}" in env_text
+    assert f"HERMES_MODEL_API_KEY={TEST_KEY}" in top_env_text
+    assert f"CUSTOM_LLM_API_KEY={TEST_KEY}" in top_env_text
     assert rendered_exists.strip() == "no"
 
 
@@ -224,6 +229,10 @@ def test_restart_preserves_custom_active_and_top_level_config_without_rendered_f
                 f"sed -n '1,10p' /opt/data/profiles/{TEST_PROFILE}/config.yaml "
                 f"&& echo ---top--- "
                 f"&& sed -n '1,10p' /opt/data/config.yaml "
+                f"&& echo ---env--- "
+                f"&& sed -n '1,10p' /opt/data/profiles/{TEST_PROFILE}/.env "
+                f"&& echo ---top-env--- "
+                f"&& sed -n '1,10p' /opt/data/.env "
                 f"&& echo ---rendered-exists--- "
                 f"&& if test -f /opt/data/profiles/{TEST_PROFILE}/config.rendered.yaml; then echo yes; else echo no; fi"
             ),
@@ -232,7 +241,9 @@ def test_restart_preserves_custom_active_and_top_level_config_without_rendered_f
     assert inspect.returncode == 0, inspect.stderr
     out = inspect.stdout
     active, rest = out.split("---top---", 1)
-    top, rendered_exists = rest.split("---rendered-exists---", 1)
+    top, rest = rest.split("---env---", 1)
+    env_text, rest = rest.split("---top-env---", 1)
+    top_env_text, rendered_exists = rest.split("---rendered-exists---", 1)
 
     assert "provider: custom" in active
     assert "model: gpt-5.4" in active
@@ -240,4 +251,8 @@ def test_restart_preserves_custom_active_and_top_level_config_without_rendered_f
     assert "provider: custom" in top
     assert "model: gpt-5.4" in top
     assert f"base_url: {TEST_BASE_URL}" in top
+    assert f"HERMES_MODEL_API_KEY={TEST_KEY}" in env_text
+    assert f"CUSTOM_LLM_API_KEY={TEST_KEY}" in env_text
+    assert f"HERMES_MODEL_API_KEY={TEST_KEY}" in top_env_text
+    assert f"CUSTOM_LLM_API_KEY={TEST_KEY}" in top_env_text
     assert rendered_exists.strip() == "no"

@@ -81,9 +81,10 @@ if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$" 2>/dev/null; 
     docker cp "$ACTIVE_OUTPUT" "${CONTAINER_NAME}:/opt/data/config.yaml"
     docker exec "$CONTAINER_NAME" rm -f "/opt/data/profiles/$PROFILE/config.rendered.yaml" 2>/dev/null || true
     docker cp "$ENV_FILE" "${CONTAINER_NAME}:/opt/data/profiles/$PROFILE/.env"
-    docker exec "$CONTAINER_NAME" chown "10000:10000" "/opt/data/profiles/$PROFILE/.env" "/opt/data/profiles/$PROFILE/config.yaml" "/opt/data/config.yaml" 2>/dev/null || true
-    docker exec "$CONTAINER_NAME" chmod 600 "/opt/data/profiles/$PROFILE/.env" 2>/dev/null || true
-    echo "✓ Copied active config and profile .env into container"
+    docker cp "$ENV_FILE" "${CONTAINER_NAME}:/opt/data/.env"
+    docker exec "$CONTAINER_NAME" chown "10000:10000" "/opt/data/profiles/$PROFILE/.env" "/opt/data/profiles/$PROFILE/config.yaml" "/opt/data/config.yaml" "/opt/data/.env" 2>/dev/null || true
+    docker exec "$CONTAINER_NAME" chmod 600 "/opt/data/profiles/$PROFILE/.env" "/opt/data/.env" 2>/dev/null || true
+    echo "✓ Copied active config and both top-level/profile .env into container"
 else
     echo "⚠ Container not running, config saved to $ACTIVE_OUTPUT only"
     echo "  Next startup will pick it up from custom-init.sh"

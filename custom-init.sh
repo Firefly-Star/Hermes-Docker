@@ -16,6 +16,7 @@ grep -q "source /opt/hermes/.venv/bin/activate" /root/.bashrc 2>/dev/null ||
 # 避免 stage2 在我们已经写好 profile/config.rendered.yaml 后，又把 profile
 # config.yaml 用镜像默认 deepseek 配置覆盖回去。
 TOP_LEVEL_CONFIG="$HERMES_HOME/config.yaml"
+TOP_LEVEL_ENV="$HERMES_HOME/.env"
 
 # ── 确保 profile 目录存在 ──
 mkdir -p "$PROFILE_DIR"
@@ -45,6 +46,11 @@ EOF
     chown 10000:10000 "$PROFILE_DIR/.env" 2>/dev/null || true
     chmod 600 "$PROFILE_DIR/.env" 2>/dev/null || true
 fi
+
+# ── 顶层 .env 也由项目接管，并保持与 profile .env 一致 ──
+cp "$PROFILE_DIR/.env" "$TOP_LEVEL_ENV"
+chown 10000:10000 "$TOP_LEVEL_ENV" 2>/dev/null || true
+chmod 600 "$TOP_LEVEL_ENV" 2>/dev/null || true
 
 # ── 渲染 profile config ──
 if [ -f "$PROFILE_DIR/config.yaml" ]; then
