@@ -53,22 +53,43 @@
 
 并且均已通过当前基线。
 
+#### 5. 多 Provider Setup 主线已完成
+当前结果：
+- `setup.d/30-llm-provider.sh` 已接入 `data/hermes-providers.json`
+- setup 向导会读取 catalog 并只展示 `setup_supported=true` 的 provider
+- provider-specific API key / base URL env 名称已由 catalog 驱动
+- 非 custom provider 优先使用 catalog 内置模型列表
+- custom endpoint 继续走 `/models`，失败时允许手动输入模型名
+
+已通过的相关测试：
+- `tests/test_30_llm_provider.py`
+- `tests/test_100_env.py`
+- `tests/test_setup_e2e.py`
+- `tests/test_runtime_isolated.py`
+
+最近一次相关回归为：
+- `12 passed`
+
 ---
 
 ### B. 已发现但未完成
 
-#### 多 Provider Setup
+#### README / README-CH 文档同步
+之前 README 仍偏旧，尤其是：
+- provider 选择能力
+- 三层测试体系
+- active config 管理方式
+- cleanup / 回归测试入口
+
 当前状态：
-- provider catalog 数据已存在：`data/hermes-providers.json`
-- 开发者导出脚本已存在：`scripts/export-hermes-providers.py`
-- 设计文档已存在：`docs/provider-catalog-design.md`
-- RED 测试已开始写
+- README / README-CH 已补齐到 catalog-driven multi-provider setup
+- 但后续如果 provider catalog 范围继续变化，文档仍需继续维护
 
-但当前实现仍然只有：
-- DeepSeek
-- Custom OpenAI-compatible
-
-setup 向导尚未真正读取 `hermes-providers.json`。
+#### provider catalog 维护流程文档化
+虽然已有设计文档，但后续还可以补一份更开发者导向的：
+- 什么时候要重新导出 `hermes-providers.json`
+- 导出后如何验证差异
+- 哪些 provider 应该过滤掉
 
 ---
 
@@ -109,54 +130,65 @@ setup 向导尚未真正读取 `hermes-providers.json`。
 结果：
 - `config.active.yaml` 不会再被误追踪
 
+### 修复 5：多 provider setup 接入 catalog
+修复文件：
+- `setup.d/30-llm-provider.sh`
+- `tests/test_30_llm_provider.py`
+- `tests/test_100_env.py`
+- `tests/test_setup_e2e.py`
+- `README.md`
+- `README-CH.md`
+
+结果：
+- provider 选择不再是 DeepSeek / custom 两分支硬编码
+- setup 可消费仓库内已提交的 provider catalog
+- provider-specific env 写入受测试保护
+- E2E 已按新的 catalog 顺序修正
+
 ---
 
 ## 当前最重要待办（按优先级）
 
-### P1. 完成多 Provider Setup
+### P1. provider catalog 维护流程文档化
 目标：
-- 像 Hermes 一样支持多家 provider
-- 但普通用户不需要自己导出 provider catalog
+- 让开发者知道何时需要重新导出 `hermes-providers.json`
+- 让 catalog 更新后的验证流程标准化
 
 建议顺序：
-1. 先把 provider catalog RED 测试整理干净
-2. 改 `setup.d/30-llm-provider.sh`
-3. 改 `tests/test_100_env.py`
-4. 重新跑：
-   - `tests/test_30_llm_provider.py`
-   - `tests/test_100_env.py`
-   - `tests/test_setup_e2e.py`
+1. 补写 catalog 维护文档
+2. 记录筛选 `setup_supported=true` 的准则
+3. 记录更新后应跑的测试集
 
-### P2. README / README-CH 更新
-目前 README 仍偏旧，尤其是：
+### P2. README / README-CH 持续同步
+当前 README 已更新到当前实现，但它们以后仍然是高频过时点。
+每次改动以下内容后都应同步：
 - provider 选择能力
-- 三层测试体系
+- 测试入口
 - active config 管理方式
-- cleanup 脚本
+- setup 交互流程
 
-### P3. provider catalog 维护流程文档化
-虽然已有设计文档，但后续还可以补一份更开发者导向的：
-- 什么时候要重新导出 `hermes-providers.json`
-- 导出后如何验证差异
-- 哪些 provider 应该过滤掉
+### P3. 扩大回归测试覆盖面
+当前多 provider 相关链路已验证通过，但后续还可以考虑：
+- 把更多 provider 类型补进测试样例
+- 为 catalog 顺序变化增加更稳健的测试辅助
+- 覆盖更多 `/models` fallback 边界情况
 
 ---
 
 ## 下一步推荐开发顺序
 
 ### 路线 1（推荐）
-1. 完成多 provider setup
-2. 测试通过
-3. 更新 README
-4. 提交
+1. 补 catalog 维护文档
+2. 按需扩充 provider 测试样例
+3. 继续做文档同步
 
-### 路线 2（文档优先）
-1. 先更新 README / README-CH
-2. 再做多 provider
+### 路线 2（测试优先）
+1. 先补更多 provider 回归测试
+2. 再补 catalog 维护文档
 
 不建议路线：
-- 继续加新功能而不先把多 provider 做完
-因为仓库里已经有半完成的 provider catalog 资产，继续拖会越来越混乱。
+- 在 provider catalog 已接入后，又回退到新的硬编码 provider 分支
+因为这会重新制造 catalog 和实现分叉的问题。
 
 ---
 
@@ -170,12 +202,17 @@ setup 向导尚未真正读取 `hermes-providers.json`。
 - `custom-init.sh`
 一定要跑 `tests/test_setup_e2e.py`
 
-2. 运行态 config 的所有权已经是项目级规则
-不要再引入新的“rendered 备用配置长期保留”逻辑。
+2. provider 选择能力现在是 catalog 驱动
+如果改了：
+- `data/hermes-providers.json`
+- `setup.d/30-llm-provider.sh`
+一定要跑：
+- `tests/test_30_llm_provider.py`
+- `tests/test_100_env.py`
+- `tests/test_setup_e2e.py`
 
-3. provider catalog 的维护边界已经明确
-- 开发者更新 JSON
-- 用户只消费 JSON
+3. 运行态 config 的所有权已经是项目级规则
+不要再引入新的“rendered 备用配置长期保留”逻辑。
 
 4. 当前主容器 `hermes` 是生产/工作态
 任何真实容器测试都必须：
@@ -198,4 +235,13 @@ python3 -m pytest tests/test_setup_e2e.py -q
 - 运行态配置链正常
 - setup 主路径正常
 
-如果再加上 L1 全绿，说明当前仓库主线基本健康。
+如果要验证多 provider 主线，再执行：
+```bash
+python3 -m pytest \
+  tests/test_30_llm_provider.py \
+  tests/test_100_env.py \
+  tests/test_setup_e2e.py \
+  tests/test_runtime_isolated.py -q
+```
+
+如果这一组也绿，说明多 provider setup 主线基本健康。

@@ -51,17 +51,21 @@
    - 运行时隔离容器集成测试
    - setup.sh 真 E2E
 
-### 仍在开发中的功能
-1. “像 Hermes 一样支持多 provider 选择”
+5. 多 provider setup 已接入主线
    - 已有 `data/hermes-providers.json`
-   - 已有开发者导出脚本 `scripts/export-hermes-providers.py`
-   - 但 `setup.d/30-llm-provider.sh` 还没有真正接入 catalog
-   - 当前用户可选项仍然基本是：
-     - DeepSeek
-     - Custom OpenAI-compatible
+   - `setup.d/30-llm-provider.sh` 已真正接入 catalog
+   - provider-specific env 写入已有测试覆盖
+   - setup E2E 已按新的 provider 顺序适配
 
-2. README 文档还没完全跟最新实现对齐
-   - 尤其是 provider 选择能力、测试体系、active config 管理权等内容，需要后续同步更新
+### 当前仍需要持续维护的部分
+1. provider catalog 本身的更新流程
+   - catalog 现在已接入主线
+   - 但开发者仍需要维护 `data/hermes-providers.json`
+   - 需要补更明确的维护文档
+
+2. README 文档同步
+   - README / README-CH 已补到当前实现
+   - 但 provider list、测试入口、交互细节今后仍然容易继续过时
 
 ---
 
@@ -99,6 +103,7 @@
 - `tests/test_runtime_isolated.py`
 - `tests/test_setup_e2e.py`
 - `tests/test_30_llm_provider.py`
+- `tests/test_100_env.py`
 
 ---
 
@@ -109,13 +114,20 @@
 - 开发者从 Hermes 导出 provider 元数据后，提交 `data/hermes-providers.json`
 - setup 向导只读取仓库里已提交好的 JSON
 
-### 2. 运行态 config 由本项目接管
+### 2. provider 选择已改为 catalog 驱动
+当前原则是：
+- setup 不再只支持 DeepSeek / custom 两个硬编码分支
+- provider-specific API key / base URL env 由 catalog 决定
+- 非 custom provider 优先使用 catalog 内置 models
+- custom provider 继续用 `/models` 探测并支持手工 fallback
+
+### 3. 运行态 config 由本项目接管
 当前原则是：
 - profile `config.yaml` 由本项目管理
 - top-level `/opt/data/config.yaml` 也由本项目管理
 - 不再把 `config.rendered.yaml` 当成运行态主文件
 
-### 3. 测试容器默认保留，清理由脚本完成
+### 4. 测试容器默认保留，清理由脚本完成
 - `scripts/cleanup-test-runtime.sh`
 - `scripts/cleanup-test-setup-e2e.sh`
 
@@ -125,21 +137,15 @@
 
 ## 当前最重要的未完成事项
 
-### 多 Provider Setup
+### provider catalog 维护流程文档化
 目标：
-- 像 Hermes 一样支持尽可能多的 provider
-- 但用户不需要进入容器或自己导出 provider 列表
-
-当前实现状态：
-- `data/hermes-providers.json` 已存在
-- catalog 设计文档已写：`docs/provider-catalog-design.md`
-- RED 测试已经开始写，且已经暴露出当前实现仍然只有 1/2 两个 provider 选项
+- 让开发者明确何时重新导出 `hermes-providers.json`
+- 让更新 catalog 后的验证动作标准化
 
 下一步应做：
-1. 先把 provider catalog RED 测试修成“纯净 RED”
-2. 改 `setup.d/30-llm-provider.sh` 读取 JSON
-3. 补写 `write_env` 的 provider-specific env 测试
-4. 跑绿后再更新 README
+1. 补 catalog 维护文档
+2. 记录筛选 `setup_supported=true` 的准则
+3. 固化 catalog 更新后的测试命令
 
 ---
 
@@ -147,14 +153,17 @@
 详见：
 - `docs/testing-guide.md`
 
-截至目前：
-- setup.d 模块/函数测试：30 passed
+截至当前工作树：
+- setup.d 模块/函数测试：主线已覆盖
 - 运行时隔离容器测试：3 passed
 - setup.sh 真 E2E：1 passed
+- 多 provider 相关回归：12 passed
 
-说明：
-- 当前主路径已经有很强的测试支撑
-- 但“多 provider 目录”这条新功能还没合入主线
+多 provider 相关回归包含：
+- `tests/test_30_llm_provider.py`
+- `tests/test_100_env.py`
+- `tests/test_setup_e2e.py`
+- `tests/test_runtime_isolated.py`
 
 ---
 
@@ -172,7 +181,7 @@
 必须再跑：
 - `tests/test_setup_e2e.py`
 
-### 如果你改了 provider 选择能力
+### 如果你改了 provider 选择能力 / provider catalog
 必须再跑：
 - `tests/test_30_llm_provider.py`
 - `tests/test_100_env.py`
@@ -194,6 +203,9 @@
 4. 改 `setup.sh` 行为时，不要只跑函数测试
    - 一定要跑真 E2E
 
+5. 不要重新引入新的硬编码 provider 分支
+   - 现在 provider 选择已经是 catalog 驱动，回退会制造实现与 catalog 分叉
+
 ---
 
 ## 相关文档索引
@@ -213,4 +225,4 @@ provider 方案：
 
 如果你只看一份文档开始维护，先看这份总览；
 如果你准备改测试，接着看 `docs/testing-guide.md`；
-如果你准备做多 provider，接着看 `docs/provider-catalog-design.md`。
+如果你准备改 provider 选择或 catalog，接着看 `docs/provider-catalog-design.md`。

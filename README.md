@@ -1,14 +1,14 @@
 # Hermes Single-Agent
 
-A minimal Docker setup for running a single [Hermes agent](https://github.com/NousResearch/hermes-agent). The setup wizard can configure either **DeepSeek V4 Flash** or a custom OpenAI-compatible LLM endpoint.
+A minimal Docker wrapper for running a single [Hermes agent](https://github.com/NousResearch/hermes-agent). The setup wizard now reads a checked-in provider catalog and can configure multiple Hermes-compatible providers, plus custom OpenAI-compatible endpoints.
 
 ## Quick Start
 
 ```bash
 # 1. Edit SOUL.md to define your agent's personality
 
-# 2. Run setup — it will ask for API key, agent name, SOUL path,
-#    then start the container and exec you in
+# 2. Run setup — it will ask for provider, model, API key, agent name,
+#    SOUL path, then start the container and exec you in
 bash setup.sh
 ```
 
@@ -20,6 +20,42 @@ hermes -p <agent_name> shell      # interactive shell with tools
 hermes -p <agent_name> run <cmd>  # single command
 ```
 
+## What the setup wizard configures
+
+The project is not Hermes itself. It is a deployment wrapper that automates:
+
+- Docker container deployment
+- Hermes profile bootstrap
+- SSH back to the host for terminal execution
+- SOUL / MEMORY / USER template seeding
+- project-managed active config sync
+- optional Playwright MCP integration
+
+## Supported provider selection
+
+`setup.sh` reads `data/hermes-providers.json` and shows only providers marked `setup_supported=true`.
+
+Current setup flow supports:
+
+- catalog-driven provider selection
+- provider-specific API key env names
+- provider-specific base URL env names
+- local model selection from catalog when models are bundled
+- `/models` fallback when catalog models are empty
+- custom OpenAI-compatible endpoints
+- manual model entry when `/models` fails
+
+Typical examples include:
+
+- OpenRouter
+- OpenAI API
+- Anthropic
+- Google AI Studio
+- DeepSeek
+- custom endpoint
+
+The exact list comes from the checked-in catalog, not hardcoded shell branches.
+
 ## Prerequisites
 
 - A **Linux server** (or VM) that you can SSH into — all commands run on the server
@@ -28,14 +64,14 @@ hermes -p <agent_name> run <cmd>  # single command
   ```bash
   sudo apt update && sudo apt install -y openssh-server
   ```
-- **LLM API key** — either a [DeepSeek API key](https://platform.deepseek.com), or credentials for your custom OpenAI-compatible endpoint
+- **LLM credentials** for one of the supported providers, or a custom OpenAI-compatible endpoint
 
 ## Configuration
 
 `setup.sh` generates two gitignored files with separate responsibilities:
 
 - `.setup-state.env`: normal, non-sensitive choices from the last setup run, such as provider, model name, base URL, SSH user, and SOUL path.
-- `.env`: secrets required by Hermes/container runtime, such as `HERMES_MODEL_API_KEY`, `DEEPSEEK_API_KEY`, `CUSTOM_LLM_API_KEY`, and `API_SERVER_KEY`.
+- `.env`: secrets required by Hermes/container runtime, such as `HERMES_MODEL_API_KEY`, provider-specific API keys, and `API_SERVER_KEY`.
 
 Hermes loads `/opt/data/profiles/<agent>/.env` when the profile starts. `config.yaml` keeps only an `api_key: ${HERMES_MODEL_API_KEY}` reference, and Hermes expands it at runtime, so plaintext API keys are not written into config files.
 
@@ -45,8 +81,10 @@ Normal settings:
 |---|---|---|
 | `LLM_PROVIDER` | `deepseek` | Hermes model provider name; custom endpoints use `custom` |
 | `CUSTOM_LLM_PROVIDER_NAME` | — | Display label entered for a custom endpoint; not used as the Hermes provider |
+| `LLM_PROVIDER_API_KEY_ENV` | provider-specific | Primary provider API key env name chosen by setup |
+| `LLM_PROVIDER_BASE_URL_ENV` | provider-specific | Provider base URL env name chosen by setup |
 | `LLM_MODEL` | `deepseek-v4-flash` | Selected model name |
-| `LLM_BASE_URL` | `https://api.deepseek.com/v1` | OpenAI-compatible API base URL |
+| `LLM_BASE_URL` | provider-specific | Provider API base URL |
 | `MODEL_CONTEXT_LENGTH` | — | Optional `model.context_length` override; blank means omit it and let Hermes detect the context length |
 | `COMPRESSION_ENABLED` | `true` | Whether Hermes automatic context compression is enabled |
 | `COMPRESSION_THRESHOLD` | `0.85` | Auto-compression trigger ratio; about 109k tokens on a 128k context model |
@@ -59,8 +97,8 @@ Secrets:
 | Variable | Description |
 |---|---|
 | `HERMES_MODEL_API_KEY` | Model API key referenced by `config.yaml` |
-| `DEEPSEEK_API_KEY` | DeepSeek API key copy for Hermes/provider detection compatibility |
-| `CUSTOM_LLM_API_KEY` | Custom endpoint API key copy |
+| provider-specific key env | e.g. `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`, `CUSTOM_LLM_API_KEY` |
+| provider-specific base URL env | e.g. `OPENAI_BASE_URL`, `OPENROUTER_BASE_URL`, `CUSTOM_LLM_BASE_URL` |
 | `API_SERVER_KEY` | Internal API gateway key |
 
 ### Context compression and context length
@@ -95,31 +133,67 @@ You can also edit `templates/MEMORY.md` and `templates/USER.md` to seed the Agen
 
 ```
 .
-├── setup.sh              # Interactive setup wizard entrypoint (run this)
-├── setup.d/              # Setup modules sourced by setup.sh
-│   ├── 00-common.sh      # Shared variables/helpers
-│   ├── 30-llm-provider.sh # LLM provider/model selection
-│   └── ...               # One setup concern per file
-├── custom-init.sh         # Container startup hook (cont-init.d, runs before system init)
-├── docker-compose.yml    # Service definition
-├── .setup-state.env      # Normal non-sensitive settings (auto-generated, gitignored)
-├── .env                  # Secrets (auto-generated, gitignored)
-├── SOUL.md               # Agent personality definition (edit this)
+├── setup.sh                 # Interactive setup wizard entrypoint (run this)
+├── setup.d/                 # Setup modules sourced by setup.sh
+│   ├── 00-common.sh         # Shared variables/helpers
+│   ├── 30-llm-provider.sh   # Catalog-driven provider/model selection
+│   └── ...                  # One setup concern per file
+├── custom-init.sh           # Container startup hook (cont-init.d, runs before system init)
+├── render-config.sh         # Host-side config renderer + sync helper
+├── docker-compose.yml       # Service definition
+├── .setup-state.env         # Normal non-sensitive settings (auto-generated, gitignored)
+├── .env                     # Secrets (auto-generated, gitignored)
+├── SOUL.md                  # Agent personality definition (edit this)
+├── data/
+│   └── hermes-providers.json  # Checked-in provider catalog consumed by setup
 ├── templates/
-│   ├── config.yaml       # Hermes config template (DeepSeek V4 Flash preset)
-│   ├── global.env        # Global environment template
-│   └── profile.env       # Profile environment template
-├── README.md             # This file
-├── README-CH.md          # Chinese documentation
+│   ├── config.yaml          # Hermes config template
+│   ├── global.env           # Global environment template
+│   └── profile.env          # Profile environment template
+├── tests/
+│   ├── test_30_llm_provider.py
+│   ├── test_100_env.py
+│   ├── test_runtime_isolated.py
+│   └── test_setup_e2e.py
+├── README.md
+├── README-CH.md
 └── .gitignore
 ```
 
 ## How It Works
 
 1. `setup.sh` collects config, writes normal choices to `.setup-state.env`, writes secrets to `.env`, and starts the container via `docker compose up -d`
-2. On container start, `custom-init.sh` runs (as a cont-init.d hook): renders config templates, creates the Hermes profile, and configures MCP conditionally
-3. After setup, you are `exec`'d into the container with the Hermes venv pre-activated
-4. Use `hermes -p <agent_name> ...` commands inside the container
+2. `render-config.sh` renders a project-managed active config from `templates/config.yaml`
+3. On container start, `custom-init.sh` runs (as a cont-init.d hook): prepares the target profile, syncs active config, and seeds memories/templates
+4. After setup, you are `exec`'d into the container with the Hermes venv pre-activated
+5. Use `hermes -p <agent_name> ...` commands inside the container
+
+## Testing
+
+The repo has a three-layer test structure:
+
+- L1: setup.d module/function tests
+- L2: isolated runtime container tests
+- L3: real `setup.sh` end-to-end tests
+
+Useful commands:
+
+```bash
+cd ~/task5/hermes-single
+python3 -m pytest tests/test_30_llm_provider.py tests/test_100_env.py -q
+python3 -m pytest tests/test_runtime_isolated.py -q
+python3 -m pytest tests/test_setup_e2e.py -q
+```
+
+A validated multi-provider-related regression run is:
+
+```bash
+python3 -m pytest \
+  tests/test_30_llm_provider.py \
+  tests/test_100_env.py \
+  tests/test_setup_e2e.py \
+  tests/test_runtime_isolated.py -q
+```
 
 ## Troubleshooting
 
@@ -139,7 +213,7 @@ Detection methods:
 docker compose up -d
 ```
 
-**IP changes after switching networks** — E.g. moving from office WiFi to home network. Re-run `setup.sh` to re-detect, or manually update `SSH_HOST` in `.setup-state.env` and restart the container.
+**IP changes after switching networks** — e.g. moving from office WiFi to home network. Re-run `setup.sh` to re-detect, or manually update `SSH_HOST` in `.setup-state.env` and restart the container.
 
 ## License
 
