@@ -123,7 +123,7 @@ def test_setup_sh_e2e_launches_isolated_container(setup_e2e_runtime):
     inputs = "\n".join([
         TEST_PROFILE,
         TEST_CONTAINER,
-        "2",
+        "29",
         "ziikoo",
         TEST_BASE_URL.format(port=port),
         TEST_KEY,

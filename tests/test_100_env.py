@@ -3,7 +3,29 @@ from pathlib import Path
 from tests.helpers import build_common_exports, read_text, run_bash
 
 
-def test_write_env_writes_custom_provider_files(temp_setup_files):
+def test_write_env_writes_provider_specific_envs(temp_setup_files):
+    result = run_bash(
+        f'''
+        {build_common_exports(**temp_setup_files)}
+        LLM_PROVIDER=openai-api
+        LLM_PROVIDER_API_KEY_ENV=OPENAI_API_KEY
+        LLM_PROVIDER_BASE_URL_ENV=OPENAI_BASE_URL
+        LLM_MODEL=gpt-5.4
+        LLM_BASE_URL=https://api.openai.com/v1
+        HERMES_MODEL_API_KEY=sk-openai
+        write_env
+        '''
+    )
+    assert result.returncode == 0
+    env_text = read_text(temp_setup_files['env_file'])
+    state_text = read_text(temp_setup_files['state_file'])
+    assert 'HERMES_MODEL_API_KEY=sk-openai' in env_text
+    assert 'OPENAI_API_KEY=sk-openai' in env_text
+    assert 'OPENAI_BASE_URL=https://api.openai.com/v1' in env_text
+    assert 'LLM_PROVIDER=openai-api' in state_text
+    assert 'LLM_PROVIDER_API_KEY_ENV=OPENAI_API_KEY' in state_text
+    assert 'LLM_PROVIDER_BASE_URL_ENV=OPENAI_BASE_URL' in state_text
+
     result = run_bash(
         f'''
         {build_common_exports(**temp_setup_files)}
@@ -20,7 +42,7 @@ def test_write_env_writes_custom_provider_files(temp_setup_files):
     assert result.returncode == 0
     env_text = read_text(temp_setup_files['env_file'])
     state_text = read_text(temp_setup_files['state_file'])
-    override_text = read_text(Path(temp_setup_files['tmp_path']).parent / 'docker-compose.override.yml') if False else read_text(Path('/home/wxz/task5/hermes-single/docker-compose.override.yml'))
+    override_text = read_text(Path('/home/wxz/task5/hermes-single/docker-compose.override.yml'))
     assert 'HERMES_MODEL_API_KEY=sk-custom' in env_text
     assert 'CUSTOM_LLM_API_KEY=sk-custom' in env_text
     assert 'CUSTOM_LLM_BASE_URL=https://api.gaoxin.net.cn/v1' in env_text
