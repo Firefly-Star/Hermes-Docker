@@ -4,7 +4,6 @@ model:
   model: ${LLM_MODEL}
   api_key: ${HERMES_MODEL_API_KEY}
   base_url: ${LLM_BASE_URL}
-# ${MODEL_CONTEXT_LENGTH_LINE}
 providers: {}
 fallback_providers: []
 credential_pool_strategies: {}
