@@ -1,0 +1,7 @@
+top_level_env:
+  HERMES_MODEL_API_KEY: "***"
+  DEEPSEEK_API_KEY: ""
+  CUSTOM_LLM_API_KEY: "***"
+  API_SERVER_KEY: fixed-runtime-key
+  SOUL_PATH: "__RUNTIME_SOUL_PATH__"
+  CUSTOM_LLM_BASE_URL: https://api.gaoxin.net.cn/v1

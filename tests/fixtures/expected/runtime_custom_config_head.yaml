@@ -1,0 +1,11 @@
+top_level_config_head:
+  model:
+    provider: custom
+    default: gpt-5.4
+    model: gpt-5.4
+    api_key: ${HERMES_MODEL_API_KEY}
+    base_url: https://api.gaoxin.net.cn/v1
+    context_length: 1000000
+  providers: {}
+  fallback_providers: []
+  credential_pool_strategies: {}

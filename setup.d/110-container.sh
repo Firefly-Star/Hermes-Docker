@@ -79,6 +79,18 @@ PROXYEOF
             run_compose up -d
             echo "  等待容器初始化..."
             wait_container || return 1
+
+            # stage2 在容器启动后可能会用镜像默认配置覆盖顶层 /opt/data/config.yaml，
+            # 这里无条件重新同步一次，确保 profile config / .env 始终覆盖顶层。
+            docker exec "$container" sh -lc '
+                set -e
+                rm -f /opt/data/profiles/'"'"${AGENT_NAME}"'"'/config.rendered.yaml
+                cp /opt/data/profiles/'"'"${AGENT_NAME}"'"'/config.yaml /opt/data/config.yaml
+                cp /opt/data/profiles/'"'"${AGENT_NAME}"'"'/.env /opt/data/.env
+                chown -R 10000:10000 /opt/data/profiles/'"'"${AGENT_NAME}"'"' /opt/data/config.yaml /opt/data/.env 2>/dev/null || true
+                chmod 600 /opt/data/profiles/'"'"${AGENT_NAME}"'"'/.env /opt/data/.env 2>/dev/null || true
+            ' 2>/dev/null || true
+
             if [ "${AGENT_NAME:-kaguya}" != "kaguya" ]; then
                 echo "  引导命名 profile: ${AGENT_NAME} ..."
                 docker exec "$container" sh -lc '
@@ -91,12 +103,14 @@ PROXYEOF
                 '
                 docker cp "$SCRIPT_DIR/config.active.yaml" "$container:/opt/data/profiles/${AGENT_NAME}/config.yaml"
                 docker cp "$ENV_FILE" "$container:/opt/data/profiles/${AGENT_NAME}/.env"
+                docker cp "$ENV_FILE" "$container:/opt/data/.env"
                 docker exec "$container" sh -lc '
                     set -e
                     rm -f /opt/data/profiles/"'"${AGENT_NAME}"'"/config.rendered.yaml
                     cp /opt/data/profiles/"'"${AGENT_NAME}"'"/config.yaml /opt/data/config.yaml
-                    chown -R 10000:10000 /opt/data/profiles/"'"${AGENT_NAME}"'" /opt/data/config.yaml 2>/dev/null || true
-                    chmod 600 /opt/data/profiles/"'"${AGENT_NAME}"'"/.env 2>/dev/null || true
+                    cp /opt/data/profiles/"'"${AGENT_NAME}"'"/.env /opt/data/.env
+                    chown -R 10000:10000 /opt/data/profiles/"'"${AGENT_NAME}"'" /opt/data/config.yaml /opt/data/.env 2>/dev/null || true
+                    chmod 600 /opt/data/profiles/"'"${AGENT_NAME}"'"/.env /opt/data/.env 2>/dev/null || true
                 '
                 echo "  ${GREEN}✓ 命名 profile 已引导完成${NC}"
             fi

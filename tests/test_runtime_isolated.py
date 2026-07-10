@@ -4,8 +4,10 @@ import time
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_DIR = ROOT / "tests" / "fixtures" / "expected"
 TEST_CONTAINER = "hermes-single-test-runtime"
 TEST_PROJECT = "hermes_single_test_runtime"
 TEST_PROFILE = "kaguya"
@@ -107,7 +109,43 @@ def build_runtime_dir(tmp_path):
         "services:\n  hermes:\n    container_name: hermes-single-test-runtime\n",
         encoding="utf-8",
     )
-    return runtime
+    return runtime, soul
+
+
+def assert_dict_contains_subset(expected, actual, path=""):
+    """Assert that all keys/values from expected exist in actual.
+    Allows extra keys in actual that expected doesn't define (e.g. Hermes stage2 additions)."""
+    for key, expected_value in expected.items():
+        if key not in actual:
+            raise AssertionError(f"Missing key '{key}' at {path}")
+        actual_value = actual[key]
+        if isinstance(expected_value, dict) and isinstance(actual_value, dict):
+            assert_dict_contains_subset(expected_value, actual_value, f"{path}.{key}")
+        elif isinstance(expected_value, list) and isinstance(actual_value, list):
+            # Compare lists element by element in order (Hermes doesn't reorder lists)
+            assert expected_value == actual_value, (
+                f"List mismatch at {path}.{key}: expected={expected_value} actual={actual_value}"
+            )
+        else:
+            assert expected_value == actual_value, (
+                f"Value mismatch at {path}.{key}: expected={expected_value} actual={actual_value}"
+            )
+
+
+def build_expected_top_level_env(runtime, soul):
+    fixture = yaml.safe_load(
+        (EXPECTED_DIR / "runtime_custom_top_level_env.yaml").read_text(encoding="utf-8")
+    )
+    expected = fixture["top_level_env"]
+    expected["SOUL_PATH"] = str(soul)
+    return "\n".join(f"{k}={v}" for k, v in expected.items()) + "\n"
+
+
+def build_expected_full_config():
+    fixture = yaml.safe_load(
+        (EXPECTED_DIR / "runtime_custom_full_config.yaml").read_text(encoding="utf-8")
+    )
+    return fixture["full_config"]
 
 
 @pytest.fixture
@@ -115,12 +153,12 @@ def isolated_runtime(tmp_path):
     before = docker_ps_lines()
     before_without_test = [line for line in before if not line.startswith(f"{TEST_CONTAINER} ")]
     assert any(line.startswith("hermes ") for line in before_without_test), "working hermes container must stay present"
-    runtime = build_runtime_dir(tmp_path)
-    yield runtime, before_without_test
+    runtime, soul = build_runtime_dir(tmp_path)
+    yield runtime, soul, before_without_test
 
 
 def test_custom_init_creates_profile_directory(isolated_runtime):
-    runtime, _before = isolated_runtime
+    runtime, _soul, _before = isolated_runtime
     up = run(["docker", "compose", "-p", TEST_PROJECT, "up", "-d"], cwd=runtime, timeout=300)
     assert up.returncode == 0, up.stderr
     wait_initialized()
@@ -147,7 +185,7 @@ def test_custom_init_creates_profile_directory(isolated_runtime):
 
 
 def test_render_config_updates_active_top_level_and_removes_rendered_file(isolated_runtime):
-    runtime, _before = isolated_runtime
+    runtime, soul, _before = isolated_runtime
     cleanup = ROOT / "scripts" / "cleanup-test-runtime.sh"
     preclean = run(["bash", str(cleanup)], cwd=ROOT, timeout=300)
     assert preclean.returncode == 0, preclean.stderr + preclean.stdout
@@ -167,13 +205,13 @@ def test_render_config_updates_active_top_level_and_removes_rendered_file(isolat
             "sh",
             "-lc",
             (
-                f"sed -n '1,10p' /opt/data/profiles/{TEST_PROFILE}/config.yaml "
+                f"cat /opt/data/profiles/{TEST_PROFILE}/config.yaml "
                 f"&& echo ---top--- "
-                f"&& sed -n '1,10p' /opt/data/config.yaml "
+                f"&& cat /opt/data/config.yaml "
                 f"&& echo ---env--- "
-                f"&& sed -n '1,10p' /opt/data/profiles/{TEST_PROFILE}/.env "
+                f"&& cat /opt/data/profiles/{TEST_PROFILE}/.env "
                 f"&& echo ---top-env--- "
-                f"&& sed -n '1,10p' /opt/data/.env "
+                f"&& cat /opt/data/.env "
                 f"&& echo ---rendered-exists--- "
                 f"&& if test -f /opt/data/profiles/{TEST_PROFILE}/config.rendered.yaml; then echo yes; else echo no; fi"
             ),
@@ -186,21 +224,18 @@ def test_render_config_updates_active_top_level_and_removes_rendered_file(isolat
     env_text, rest = rest.split("---top-env---", 1)
     top_env_text, rendered_exists = rest.split("---rendered-exists---", 1)
 
-    assert "provider: custom" in active
-    assert "model: gpt-5.4" in active
-    assert f"base_url: {TEST_BASE_URL}" in active
-    assert "provider: custom" in top
-    assert "model: gpt-5.4" in top
-    assert f"base_url: {TEST_BASE_URL}" in top
-    assert f"HERMES_MODEL_API_KEY={TEST_KEY}" in env_text
-    assert f"CUSTOM_LLM_API_KEY={TEST_KEY}" in env_text
-    assert f"HERMES_MODEL_API_KEY={TEST_KEY}" in top_env_text
-    assert f"CUSTOM_LLM_API_KEY={TEST_KEY}" in top_env_text
+    expected_full_config = build_expected_full_config()
+    expected_top_env = build_expected_top_level_env(runtime, soul)
+
+    assert yaml.safe_load(active) == expected_full_config
+    assert_dict_contains_subset(expected_full_config, yaml.safe_load(top))
+    assert env_text.strip() + "\n" == expected_top_env
+    assert top_env_text.strip() + "\n" == expected_top_env
     assert rendered_exists.strip() == "no"
 
 
 def test_restart_preserves_custom_active_and_top_level_config_without_rendered_file(isolated_runtime):
-    runtime, _before = isolated_runtime
+    runtime, soul, _before = isolated_runtime
     cleanup = ROOT / "scripts" / "cleanup-test-runtime.sh"
     preclean = run(["bash", str(cleanup)], cwd=ROOT, timeout=300)
     assert preclean.returncode == 0, preclean.stderr + preclean.stdout
@@ -226,13 +261,13 @@ def test_restart_preserves_custom_active_and_top_level_config_without_rendered_f
             "sh",
             "-lc",
             (
-                f"sed -n '1,10p' /opt/data/profiles/{TEST_PROFILE}/config.yaml "
+                f"cat /opt/data/profiles/{TEST_PROFILE}/config.yaml "
                 f"&& echo ---top--- "
-                f"&& sed -n '1,10p' /opt/data/config.yaml "
+                f"&& cat /opt/data/config.yaml "
                 f"&& echo ---env--- "
-                f"&& sed -n '1,10p' /opt/data/profiles/{TEST_PROFILE}/.env "
+                f"&& cat /opt/data/profiles/{TEST_PROFILE}/.env "
                 f"&& echo ---top-env--- "
-                f"&& sed -n '1,10p' /opt/data/.env "
+                f"&& cat /opt/data/.env "
                 f"&& echo ---rendered-exists--- "
                 f"&& if test -f /opt/data/profiles/{TEST_PROFILE}/config.rendered.yaml; then echo yes; else echo no; fi"
             ),
@@ -245,14 +280,12 @@ def test_restart_preserves_custom_active_and_top_level_config_without_rendered_f
     env_text, rest = rest.split("---top-env---", 1)
     top_env_text, rendered_exists = rest.split("---rendered-exists---", 1)
 
-    assert "provider: custom" in active
-    assert "model: gpt-5.4" in active
-    assert f"base_url: {TEST_BASE_URL}" in active
-    assert "provider: custom" in top
-    assert "model: gpt-5.4" in top
-    assert f"base_url: {TEST_BASE_URL}" in top
-    assert f"HERMES_MODEL_API_KEY={TEST_KEY}" in env_text
-    assert f"CUSTOM_LLM_API_KEY={TEST_KEY}" in env_text
-    assert f"HERMES_MODEL_API_KEY={TEST_KEY}" in top_env_text
-    assert f"CUSTOM_LLM_API_KEY={TEST_KEY}" in top_env_text
+    expected_full_config = build_expected_full_config()
+    expected_top_env = build_expected_top_level_env(runtime, soul)
+
+    assert yaml.safe_load(active) == expected_full_config
+    assert_dict_contains_subset(expected_full_config, yaml.safe_load(top))
+    assert env_text.strip() + "\n" == expected_top_env
+    assert top_env_text.strip() + "\n" == expected_top_env
     assert rendered_exists.strip() == "no"
+
